@@ -18,18 +18,34 @@
       client_security_group: rhui_dev_client
       image: ami-f6f16b9f
       cds_instance_count: 2
+      ebs_mount_point: sdh
+      user_name: "{{ lookup('env', '$USER') }}"
 
   # Launch 1 RHUA, 2 CDS
 
   tasks:
     - name: Launch RHUA instance
-      local_action: ec2 keypair=${keypair} group=${rhua_security_group} instance_type=${instance_type} 
-        image=${image} wait=no count=1
+      local_action:
+        module: ec2
+        keypair: ${keypair}
+        group: ${rhua_security_group}
+        instance_type: ${instance_type}
+        image: ${image} 
+        wait: no
+        count: 1
+        instance_tags: '{"Name": "{{ user_name }} RHUA"}'
       register: ec2_rhua
 
     - name: Launch CDS instance(s)
-      local_action: ec2 keypair=${keypair} group=${rhua_security_group} instance_type=${instance_type} 
-        image=${image} wait=no count=${cds_instance_count}
+      local_action: 
+        module: ec2
+        keypair: ${keypair}
+        group: ${rhua_security_group}
+        instance_type: ${instance_type}
+        image: ${image}
+        wait: no
+        count: ${cds_instance_count} 
+        instance_tags: '{"Name":"{{ user_name }} CDS"}'
       register: ec2_cdses
 
     - name: Add rhua instances to rhua group
@@ -40,25 +56,24 @@
       local_action: add_host name=${item.public_dns_name} groups=cdses
       with_items: ${ec2_cdses.instances}
 
-    - name: Create a volume and attach for RHUA
-      local_action: ec2_vol volume_size=100 instance=${item.id}
-      with_items: ${ec2_rhua.instances}
+    - name: Add cdses group to servers group
+      local_action: add_host groupname=cdses groups=servers
 
-    - name: Create a volume and attach for CDSes
-      local_action: ec2_vol volume_size=100 instance=${item.id}
-      with_items: ${ec2_cdses.instances}
+    - name: Add rhua group to servers group
+      local_action: add_host groupname=rhua groups=servers
 
-    - name: Wait for SSH to be available on RHUA 
+    - name: Create a volume and attach for all servers
+      local_action: ec2_vol volume_size=100 instance=${item.id} device_name=${ebs_mount_point}
+      with_items: groups.servers
+
+    - name: Wait for SSH to be available on all servers
       local_action: wait_for host=${item.public_dns_name} port=22
-      with_items: ${ec2_rhua.instances}
-
-    - name: Wait for SSH to be available on CDS(s)
-      local_action: wait_for host=${item.public_dns_name} port=22
-      with_items: ${ec2_cdses.instances}
+      with_items: groups.servers
 
 
-- name: Configure RHUA
-  hosts: rhua
+
+- name: Configure Servers
+  hosts: servers
   user: ec2-user
   sudo: yes
   gather_facts: true
@@ -67,7 +82,13 @@
     - config
     - configure 
 
+  vars:
+    - ebs_mount_point: /dev/sdh
+
   tasks:
+    - name: Create filesystem on new EBS volume
+      command: /sbin/mkfs.ext3 ${ebs_mount_point}
+
     - name: install rpms
       action: yum name=$item state=present
       with_items:
@@ -79,25 +100,3 @@
     - name: restart httpd
       action: service name=httpd state=restarted
 
-
-- name: Configure CDS
-  hosts: cdses
-  user: ec2-user
-  sudo: yes
-  gather_facts: true
-
-  tags:
-    - config
-    - configure 
-
-  tasks:
-    - name: install rpms
-      action: yum name=$item state=present
-      with_items:
-        - httpd
-        - vim-enhanced
-      notify: restart httpd
-
-  handlers:
-    - name: restart httpd
-      action: service name=httpd state=restarted
