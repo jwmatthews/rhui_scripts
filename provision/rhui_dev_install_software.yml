@@ -1,0 +1,51 @@
+---
+
+- name: Configure RHUA
+  hosts: rhua
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  tags:
+    - config
+
+  vars:
+    - rhua_vg: vg0
+    - rhua_vol_name: vol1
+    - var_lib_pulp_part: /dev/${rhua_vg}/${rhua_vol_name}
+
+  tasks:
+    - name: get epel-repo rpm RHEL6
+      get_url: dest=/tmp/epel-release.rpm  url=http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+      when: ansible_os_family == 'RedHat' and ansible_lsb.major_release|int == 6
+
+    - name: install epel-repo rpm
+      action: yum pkg=/tmp/epel-release.rpm state=installed
+
+    - name: install pulp v1-stable repo to pick up dependencies
+      action: yum conf_file=http://repos.fedorapeople.org/repos/pulp/pulp/rhel-pulp.repo enablerepo=pulp-v1-stable name=pulp state=present
+
+    - name: install rpms
+      action: yum name=$item state=present
+      with_items:
+        - vim-enhanced
+        - git
+        - tig
+
+    - name: Git checkout
+      action: git repo=https://github.com/splice/pulp.git dest=/git/pulp branch=rhui
+
+    - name: Setup devel env for Pulp
+      command: echo "Steps T.B.D."
+      notify: restart httpd
+
+    - name: scp sample .vimrc over to root@hosts to make editing easier
+      action: copy src="files/vimrc" dest="/home/root/.vimrc"
+
+    - name: scp sample .vimrc over to ec2-user@hosts to make editing easier
+      action: copy src="files/vimrc" dest="/home/ec2-user/.vimrc" owner=ec2-user group=ec2-user
+
+  handlers:
+    - name: restart httpd
+      action: service name=httpd state=restarted
+
