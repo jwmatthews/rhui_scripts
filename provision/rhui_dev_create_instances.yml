@@ -15,6 +15,12 @@
 #     - rhui_dev_rhua
 #     - rhui_dev_cds
 
+# TODO:
+#  1) Expand root filesystem to 50GB to provide more room for logs & mongodb
+#  2) Tag the EBS volume that's created so we can keep track
+#     - How do we collect a list of items, when we are iterating through a list?  
+#     - will register still work?
+#
 
 - name: Stage instance(s)
   hosts: localhost
@@ -126,9 +132,9 @@
 
   vars:
     - ebs_pulp_part: /dev/xvdl
-    - rhua_vg: vg0
-    - rhua_vol_name: vol1
-    - var_lib_pulp_part: /dev/${rhua_vg}/${rhua_vol_name}
+    - vg: vg0
+    - vol_name: vol1
+    - var_lib_pulp_part: /dev/${vg}/${vol_name}
     - pulp_mount_point: /var/lib/pulp
 
   tasks:
@@ -136,10 +142,10 @@
       command: pvcreate ${ebs_pulp_part}
 
     - name: Create Volume Group
-      command: vgcreate ${rhua_vg} ${ebs_pulp_part}
+      command: vgcreate ${vg} ${ebs_pulp_part}
 
     - name: Create Logical Volume
-      command: lvcreate -l 100%FREE -n ${rhua_vol_name} ${rhua_vg}
+      command: lvcreate -l 100%FREE -n ${vol_name} ${vg}
 
     - name: Create filesystem on new LV
       command: /sbin/mkfs.ext3 -q ${var_lib_pulp_part}
@@ -162,9 +168,9 @@
 
   vars:
     - ebs_pulp_part: /dev/xvdl
-    - rhua_vg: vg0
-    - rhua_vol_name: vol1
-    - var_lib_pulp_part: /dev/${rhua_vg}/${rhua_vol_name}
+    - vg: vg0
+    - vol_name: vol1
+    - var_lib_pulp_part: /dev/${vg}/${vol_name}
     - pulp_mount_point: /var/lib/pulp-cds
 
   tasks:
@@ -172,10 +178,10 @@
       command: pvcreate ${ebs_pulp_part}
 
     - name: Create Volume Group
-      command: vgcreate ${rhua_vg} ${ebs_pulp_part}
+      command: vgcreate ${vg} ${ebs_pulp_part}
 
     - name: Create Logical Volume
-      command: lvcreate -l 100%FREE -n ${rhua_vol_name} ${rhua_vg}
+      command: lvcreate -l 100%FREE -n ${vol_name} ${vg}
 
     - name: Create filesystem on new LV
       command: /sbin/mkfs.ext3 -q ${var_lib_pulp_part}
