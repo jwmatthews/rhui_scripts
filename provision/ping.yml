@@ -1,0 +1,22 @@
+---
+# ansible-playbook ping.yml -vv --private-key=~/.ssh/splice_rsa
+
+- name: Ping RHUA instance(s)
+  hosts: rhua
+  connection: local
+  user: root
+  gather_facts: false
+
+  tasks:
+    - name: Check that server's alive
+      action: ping
+
+- name: Ping CDS instance(s)
+  hosts: cds
+  connection: local
+  user: root
+  gather_facts: false
+
+  tasks:
+    - name: Check that server's alive
+      action: ping
