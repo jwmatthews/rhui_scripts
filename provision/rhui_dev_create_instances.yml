@@ -120,6 +120,22 @@
       local_action: shell echo '{{ item.1 }}' >> ${rhui_hosts_file}
       with_indexed_items: ${groups.cds}
 
+- name: Adjust hostname to match externally resolved hostname
+  hosts:  rhua:cds
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  tags:
+    - external_hostname
+
+  tasks:
+    - name: scp script over to update external hostname
+      action: copy src="files/adjust_external_hostname.sh" dest="/home/ec2-user/" owner=ec2-user group=ec2-user mode=0755
+
+    - name: Query ec2 metadata to get external hostname then update /etc/sysconfig/network
+      command: /home/ec2-user/adjust_external_hostname.sh
+
 
 - name: Create LVM file systems for RHUA
   hosts: rhua
