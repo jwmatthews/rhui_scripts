@@ -1,0 +1,119 @@
+---
+# This playbook will configure an ec2 instance to use as our RPM build host
+#   It will also serve our yum repo consisting of built RPMs for developer testing
+#
+#  The host names created by this playbook will be recorded in the 
+#    $HOSTS_FILE environment variable
+#
+#  It is intended other scripts will use the $HOSTS_FILE inventory file 
+#   to perform further configuration steps on these instances
+#
+#
+#  Playbook assumes the following:
+#  - Security groups exists ahead of time
+#     - rhui_serve_yum_repo
+
+- name: Stage instance(s)
+  hosts: localhost
+  connection: local
+  user: root
+  gather_facts: false
+
+  tags:
+      - stage
+  vars:
+      keypair: splice
+      instance_type: m1.large
+      security_group: rhui_serve_yum_repo
+      image: ami-f6f16b9f
+      hosts_file: "{{ lookup('env', 'HOSTS_FILE') }}"
+      ebs_data_size: 250
+      ebs_data_part: sdh
+
+  tasks:
+    - local_action: shell date +"%Y-%m-%d"
+      register: datestamp
+
+    - name: Launch instance
+      local_action:
+        module: ec2
+        keypair: ${keypair}
+        group: ${security_group}
+        instance_type: ${instance_type}
+        image: ${image}
+        wait: yes
+        count: 1
+        instance_tags: '{"Name": "RHUI Dev Yum Server - {{ datestamp.stdout }}"}'
+      register: ec2
+
+    - name: Add instance to servers group
+      local_action: add_host name=${item.public_dns_name} groups=builders
+      with_items: ${ec2.instances}
+
+    - name: Create a volume for content and attach
+      local_action: ec2_vol volume_size=${ebs_data_size} instance=${item.id} device_name=${ebs_data_part}
+      with_items: ${ec2.instances}
+
+    - name: Write [builders] header into {{hosts_file}}
+      local_action: shell echo '[builders]' >> ${hosts_file}
+
+    - name: Write instance info into {{hosts_file}}
+      local_action: shell echo '{{ item }}' >> ${hosts_file}
+      with_items: ${groups.builders}
+
+    - name: Wait for SSH to be available on all servers
+      local_action: wait_for host=${item} port=22
+      with_items: ${groups.builders}
+
+- name: Adjust hostname to match externally resolved hostname
+  hosts:  builders
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  tags:
+    - external_hostname
+
+  tasks:
+    - name: scp script over to update external hostname
+      action: copy src="./files/adjust_external_hostname.sh" dest="/home/ec2-user/" owner=ec2-user group=ec2-user mode=0755
+
+    - name: Query ec2 metadata to get external hostname then update /etc/sysconfig/network
+      command: /home/ec2-user/adjust_external_hostname.sh
+
+
+- name: Create LVM file system for builder
+  hosts: builders
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  tags:
+    - lvm
+
+  vars:
+    - ebs_part: /dev/xvdl
+    - vg: vg0
+    - vol_name: vol1
+    - data_part: /dev/${vg}/${vol_name}
+    - mount_point: /var/www
+
+  tasks:
+    - name: Create PV for Volume group
+      command: pvcreate ${ebs_part}
+
+    - name: Create Volume Group
+      command: vgcreate ${vg} ${ebs_part}
+
+    - name: Create Logical Volume
+      command: lvcreate -l 100%FREE -n ${vol_name} ${vg}
+
+    - name: Create filesystem on new LV
+      command: /sbin/mkfs.ext3 -q ${data_part}
+
+    - name: Create mount point '${mount_point}' 
+      command: mkdir ${mount_point}
+
+    - name: Mount EBS volume
+      action: mount name=${mount_point} src=${data_part} fstype=ext3 state=mounted
+

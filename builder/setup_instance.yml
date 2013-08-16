@@ -1,0 +1,90 @@
+---
+
+- name: Install Packages
+  hosts: builders
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  tags:
+    - packages
+
+  tasks:
+    - name: get epel-repo rpm RHEL6
+      get_url: dest=/tmp/epel-release.rpm  url=http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+      when: ansible_os_family == 'RedHat' and ansible_lsb.major_release|int == 6
+
+    - name: install epel-repo rpm
+      action: yum pkg=/tmp/epel-release.rpm state=installed
+
+    - name: install deps we will need to build RPMs
+      action: yum name=$item state=present
+      with_items:
+        - tito
+        - git
+        - tig
+        - python2-devel
+        - hardlink 
+        - gcc
+        - mod_ssl
+        - openssl
+        - openssl-devel
+        - swig
+        - httpd
+        - httpd-devel
+        - mongodb-server
+        - mongodb
+        - pymongo
+        - python-setuptools
+        - python-BeautifulSoup
+        - python-webpy
+        - PyYAML
+        - python-simplejson
+        - python-oauth2
+        - python-ldap
+        - crontabs
+        - acl
+        - qpid-cpp-server
+        - python-ctypes
+        - python-hashlib
+        - nss
+        - curl
+        - python-rhsm
+        - ruby
+      notify: restart httpd
+
+    # RPMs from Pulp project
+    # python-gofer, grinder, gofer, gofer-package, M2Crypto, mod_wsgi
+
+    - name: install extra rpms to make devel env nicer
+      action: yum name=$item state=present
+      with_items:
+        - vim-enhanced
+
+    - name: Ensure /git exists
+      file: dest=/git state=directory owner=ec2-user
+
+    - name: Git checkout pulp 'rhui' branch
+      action: git repo=https://github.com/splice/pulp.git dest=/git/pulp version=rhui
+
+    - name: Git checkout gofer 'rhui' branch
+      action: git repo=https://github.com/splice/gofer.git dest=/git/gofer version=rhui
+
+    - name: Git checkout grinder 'rhui' branch
+      action: git repo=https://git.fedorahosted.org/git/grinder.git dest=/git/grinder version=rhui
+
+    - name: scp sample .rc files over to hosts to make editing easier for root
+      action: copy src="files/${item}" dest="/root/.${item}" owner=root group=root
+      with_items:
+        - bashrc
+        - vimrc
+
+    - name: scp sample .rc files over to hosts to make editing easier for ec2-user
+      action: copy src="files/${item}" dest="/home/ec2-user/.${item}" owner=ec2-user group=ec2-user
+      with_items:
+        - bashrc
+        - vimrc
+
+  handlers:
+    - name: restart httpd
+      action: service name=httpd state=restarted
