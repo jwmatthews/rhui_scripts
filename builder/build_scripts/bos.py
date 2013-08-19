@@ -98,7 +98,7 @@ def createrepo(temp_repo_dir, repo_dir):
     run_command(cmd)
     cmd = "cd %s && createrepo ." % (repo_dir)
     run_command(cmd)
-    generate_yum_repo_file("rhui-testing-rpms", "/var/www/html/pub/rhui_testing_rpms.repo")
+    generate_yum_repo_file("testing_rpms_rhui", "/var/www/html/pub/testing_rpms_rhui.repo")
     cmd = "chmod -R go+rX %s" % (repo_dir)
     run_command(cmd)
     # Note hit issues of restorecon not resetting file context
