@@ -1,13 +1,9 @@
 ---
-
-- name: Install Packages/Git Repos
+- name: Install Packages/Git Repos for both RHUA & CDS
   hosts: rhua:cds
   user: ec2-user
   sudo: yes
   gather_facts: true
-
-  tags:
-    - rpms_and_code
 
   tasks:
     - name: get epel-repo rpm RHEL6
@@ -17,38 +13,11 @@
     - name: install epel-repo rpm
       action: yum pkg=/tmp/epel-release.rpm state=installed
 
-    # TODO:
-    #  After RHUI's yum repo is ready to use, update this to install pulp from RPM to pick up deps.
-    #- name: install pulp v1-stable repo to pick up dependencies
-    #  action: yum conf_file=http://repos.fedorapeople.org/repos/pulp/pulp/rhel-pulp.repo disablerepo=* enablerepo=pulp-v1-stable name=pulp state=present
-
-    - name: install pulp deps from rhel/epel
-      action: yum name=$item state=present
+    - name: update firewall
+      action: copy src="files/${item}" dest="/${item}" owner=root group=root
       with_items:
-        - pymongo
-        - python-setuptools
-        - python-webpy
-        - python-simplejson
-        - python-oauth2
-        - python-isodate
-        - python-BeautifulSoup
-        - httpd
-        - mod_ssl
-        - openssl
-        - python-ldap
-        - crontabs
-        - acl
-        - mongodb-server
-        - mongodb
-        - qpid-cpp-server
-        - python-ctypes
-        - python-hashlib
-        - nss
-        - curl
-        - python-rhsm
-
-    # RPMs from Pulp project
-    # python-gofer, grinder, gofer, gofer-package, M2Crypto, mod_wsgi
+        - etc/sysconfig/iptables
+      notify: restart iptables
 
     - name: install extra rpms to make devel env nicer
       action: yum name=$item state=present
@@ -56,22 +25,6 @@
         - vim-enhanced
         - git
         - tig
-
-    - name: Ensure /git exists
-      file: dest=/git state=directory
-
-    - name: Git checkout pulp 'rhui' branch
-      action: git repo=https://github.com/splice/pulp.git dest=/git/pulp version=rhui
-
-    - name: Git checkout gofer 'rhui' branch
-      action: git repo=https://github.com/splice/gofer.git dest=/git/gofer version=rhui
-
-    - name: Git checkout grinder 'rhui' branch
-      action: git repo=https://git.fedorahosted.org/git/grinder.git dest=/git/grinder version=rhui
-
-    - name: Setup devel env for Pulp
-      command: echo "Steps T.B.D."
-      notify: restart httpd
 
     - name: scp sample .rc files over to hosts to make editing easier for root
       action: copy src="files/${item}" dest="/root/.${item}" owner=root group=root
@@ -85,6 +38,72 @@
         - bashrc
         - vimrc
 
+    - name: Ensure /git exists
+      file: dest=/git state=directory
+
+    - name: Git checkout pulp 'rhui' branch
+      action: git repo=https://github.com/splice/pulp.git dest=/git/pulp version=rhui
+
+    - name: Git checkout gofer 'rhui' branch
+      action: git repo=https://github.com/splice/gofer.git dest=/git/gofer version=rhui
+
+    - name: Git checkout grinder 'rhui' branch
+      action: git repo=https://git.fedorahosted.org/git/grinder.git dest=/git/grinder version=rhui
+
+  handlers:
+    - name: restart iptables
+      action: service name=iptables state=restarted
+
+
+- name: Install Packages/Git Repos for RHUA
+  hosts: rhua
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  vars:
+    - rhui_build_host: ec2-50-17-26-28.compute-1.amazonaws.com
+
+  tasks:
+
+    - name: install rhui testing yum repo
+      command: wget -O /etc/yum.repos.d/testing_rpms_rhui.repo http://${rhui_build_host}/pub/testing_rpms_rhui.repo
+
+    - name: install pulp
+      action: yum name="pulp" state=latest
+      notify: restart httpd
+
+    - name: Setup devel env for Pulp
+      command: echo "Steps T.B.D."
+      notify: restart httpd
+
   handlers:
     - name: restart httpd
       action: service name=httpd state=restarted
+
+- name: Install Packages/Git Repos for CDS
+  hosts: cds
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  vars:
+    - rhui_build_host: ec2-50-17-26-28.compute-1.amazonaws.com
+
+  tasks:
+
+    - name: install rhui testing yum repo
+      command: wget -O /etc/yum.repos.d/testing_rpms_rhui.repo http://${rhui_build_host}/pub/testing_rpms_rhui.repo
+
+    - name: install pulp-cds
+      action: yum name="pulp-cds" state=latest
+      notify: restart httpd
+
+    - name: Setup devel env for Pulp
+      command: echo "Steps T.B.D."
+      notify: restart httpd
+
+  handlers:
+    - name: restart httpd
+      action: service name=httpd state=restarted
+
