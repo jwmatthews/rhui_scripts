@@ -47,19 +47,19 @@ def prep(git_dir, temp_dir, repo_dir):
         if not os.path.exists(entry):
             os.makedirs(entry)
 
-def build(git_dir, temp_dir, proj_name, proj_url, branch):
+def build(git_dir, temp_dir, proj_name, proj_url, branch=None):
     expected_source_dir = os.path.join(git_dir, proj_name)
     if not os.path.exists(expected_source_dir):
         print "Will checkout source for '%s' with git url '%s'" % (proj_name, proj_url)
         cmd = "cd %s && git clone %s" % (git_dir, proj_url)
         run_command(cmd)
+        if branch:
+            print "\nBuilding branch '%s' from '%s'" % (branch, proj_name)
+            cmd = "cd %s && git checkout -b branch origin/%s" % (expected_source_dir, branch)
+            run_command(cmd)
     print "\nBuilding: %s from %s" % (proj_name, proj_url)
     cmd = "cd %s && git pull --rebase" % (expected_source_dir)
     run_command(cmd)
-    if not branch:
-        print "\nBuilding branch '%s' from '%s'" % (branch, proj_name)
-        cmd = "cd %s && git checkout -b branch origin/%s" % (expected_source_dir, branch)
-        run_command(cmd)
 
     cmd = "cd %s && tito build --rpm -o %s" % (expected_source_dir, temp_dir)
     if CFG["scls"].has_key(proj_name):
@@ -69,6 +69,22 @@ def build(git_dir, temp_dir, proj_name, proj_url, branch):
 def copy_deps(dest_dir):
     for name, location in CFG["third_party_deps"].items():
         run_command("cp %s/*.rpm %s" % (location, dest_dir), ignore_fail=True)
+
+def generate_yum_repo_file(repo_name=None, out_path=None):
+    if os.path.exists(out_path):
+        return
+    import socket
+    hostname = socket.gethostname()
+    content = """
+[%s]
+name=RHUI Testing RPMs
+baseurl=http://%s/pub/el6/x86_64/
+enabled=1
+gpgcheck=0
+""" % (repo_name, hostname)
+    f = open(out_path, "w")
+    f.write(content)
+    f.close()
 
 def createrepo(temp_repo_dir, repo_dir):
     # Nervous deleting a full dir tree, so will move current to a backup
@@ -82,6 +98,7 @@ def createrepo(temp_repo_dir, repo_dir):
     run_command(cmd)
     cmd = "cd %s && createrepo ." % (repo_dir)
     run_command(cmd)
+    generate_yum_repo_file("rhui-testing-rpms", "/var/www/html/pub/rhui_testing_rpms.repo")
     cmd = "chmod -R go+rX %s" % (repo_dir)
     run_command(cmd)
     # Note hit issues of restorecon not resetting file context

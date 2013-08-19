@@ -53,25 +53,16 @@
         - ruby
       notify: restart httpd
 
-    # RPMs from Pulp project
-    # python-gofer, grinder, gofer, gofer-package, M2Crypto, mod_wsgi
-
     - name: install extra rpms to make devel env nicer
       action: yum name=$item state=present
       with_items:
         - vim-enhanced
 
-    - name: Ensure /git exists
-      file: dest=/git state=directory owner=ec2-user
-
-    - name: Git checkout pulp 'rhui' branch
-      action: git repo=https://github.com/splice/pulp.git dest=/git/pulp version=rhui
-
-    - name: Git checkout gofer 'rhui' branch
-      action: git repo=https://github.com/splice/gofer.git dest=/git/gofer version=rhui
-
-    - name: Git checkout grinder 'rhui' branch
-      action: git repo=https://git.fedorahosted.org/git/grinder.git dest=/git/grinder version=rhui
+    - name: update firewall
+      action: copy src="files/${item}" dest="/${item}" owner=root group=root
+      with_items:
+        - etc/sysconfig/iptables
+      notify: restart iptables
 
     - name: scp sample .rc files over to hosts to make editing easier for root
       action: copy src="files/${item}" dest="/root/.${item}" owner=root group=root
@@ -85,9 +76,24 @@
         - bashrc
         - vimrc
 
+    - name: Ensure /home/ec2-user/build_scripts exists
+      file: dest=/home/ec2-user/build_scripts state=directory owner=ec2-user
+
     - name: scp python build scripts to generate yum repo
-      action: copy src="build_scripts" dest="/home/ec2-user/build_scripts" owner=ec2-user group=ec2-user state=directory
+      action: copy src="build_scripts/${item}" dest="/home/ec2-user/build_scripts" owner=ec2-user group=ec2-user
+      with_items:
+        - bos.cfg
+        - bos.py
+        - build_repo.sh
+
+    - name: Ensure /home/ec2-user/rpm-deps/el6/x86_64 exists
+      file: dest=/home/ec2-user/rpm-deps/el6/x86_64 state=directory owner=ec2-user
+
+    - name: Ensure /var/www/html/pub exists
+      file: dest=/var/www/html/pub state=directory owner=ec2-user
 
   handlers:
     - name: restart httpd
       action: service name=httpd state=restarted
+    - name: restart iptables
+      action: service name=iptables state=restarted
