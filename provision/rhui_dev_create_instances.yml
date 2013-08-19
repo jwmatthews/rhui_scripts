@@ -46,7 +46,7 @@
     - local_action: shell id -u -n
       register: user_name
 
-    - local_action: shell date +"%Y-%m-%d"
+    - local_action: shell date +"%Y-%m-%d %r"
       register: datestamp
 
     - name: Launch RHUA instance
