@@ -85,6 +85,9 @@
         - bashrc
         - vimrc
 
+    - name: scp python build scripts to generate yum repo
+      action: copy src="build_scripts" dest="/home/ec2-user/build_scripts" owner=ec2-user group=ec2-user state=directory
+
   handlers:
     - name: restart httpd
       action: service name=httpd state=restarted
