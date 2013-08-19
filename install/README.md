@@ -1,30 +1,54 @@
-Provisioning Scripts
+Install Scripts
 ====================
 
 Goals:
  
- * Setup a Development Environment using git checkout of code 
+ * These scripts will help to generate the X509 certificates needed by RHUI, along with a populated answers file.
 
-  - Consists of 1 RHUA, 2 CDS, and 1 client configured to receive updates
-  - Configure a small custom repo to test with
-  - Deploy to EC2 or local VMs with Vagrant
 
-Technologies Used:
- 
- - Ansible
- - Vagrant
+Pre-Requisite Instructions: 
+---------------------------
 
-Assumptions (to address later): 
+ * You need to have an "entitlement certificate" to proceed with setting up a RHUI.  Below instructions will show how to download an entitlement certificate from Red Hat.
 
-  - SSH key hard coded to 'splice'
-  - Security groups have been created a head of time for: 
-    - RHUI_CDS
-    - RHUI_RHUA
+ 1. Log into https://access.redhat.com
+ 2. Click on 'Subscriptions'
+ 3. Click on 'Subscription Management'
+ 4. Click on 'RHUI'
+ 5. Click 'Register a RHUI'
+ 6. Enter a Name
+ 7. Click 'Register'
+ 8. Attach a Subscription
+ 9. Under the 'Entitlement Certificate' click 'Download'
+ 10. Rename the downloaded 'entitlement certificate' to "entitlement_cert.pem"
 
-Instructions: 
 
- 1. echo "localhost" > ~/ansible_hosts
- 2. export ANSIBLE_HOSTS=~/ansible_hosts
- 3. export ANSIBLE_HOST_KEY_CHECKING=False
- 4. ansible-playbook rhui_dev_setup.yml -vv --private-key=~/.ssh/splice_rsa
+Download Latest RHUI 2.x ISO:
+-----------------------------
 
+  * Assumes you now have a valid entitlement certificate with the file name: "entitlement_cert.pem"
+
+  1. Download a RHUI ISO, run: ./fetch_iso.sh
+
+
+
+Create X509 certificates for RHUI install:
+-----------------------------------------
+
+ * This step will generate a
+
+  - Self signed CA certificate/key
+  - HTTPS certificates with the CN matching the external hostname for each RHUA & CDS
+
+ * Steps to run:
+
+  1. Update the file: 'hostnames' to match the RHUA/CDS1/CDS2 external dns names you will use
+  2. Run: ./gen_certs.sh
+  3. See /tmp/rhui_certs for the generated certs
+
+
+Generate an answers file:
+------------------------
+
+ 1. ./update_answers.sh
+ 2. Use the 'rhui.answers' file on your setup
