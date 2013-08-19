@@ -1,0 +1,104 @@
+#
+# RHUI Installer Sample Answers File
+#
+# This sample answers file can be found at /etc/rhui/answers.sample.
+#
+# This file is meant to be used as a template for creating an answers file for use with
+# the RHUI Installer. Once the appropriate values have been entered, the RHUI Installer
+# will generate RPMs based on these values through the following call:
+#
+#   $ rhui-installer --answers <path to populated answers file>
+#
+# The results of running the above call will be found in the directory specified in the
+# dest_dir attribute under the [general] section.
+
+
+# == General ===========================================================================
+
+# The [general] section contains configuration options that apply to the RHUI installation
+# as a whole.
+[general]
+
+# This will be used as the version for all RPMs that are created by this answers file.
+# Individual components may override this value with the "rpm_version" attribute.
+version: 2.1
+
+# Local directory into which RHUI tools will place any temporary files as well as the
+# built RPMs. If this directory exists prior to running RHUI tools, the user executing
+# it must have write permissions.
+dest_dir: /tmp/rhui
+
+# Full path to the CA certificate used to secure QPID communications. This is generated
+# using the nss-db-gen script included with the RHUI Installer.
+qpid_ca: /etc/rhui/qpid/ca.crt
+
+# Full path to the client certificate used to secure QPID communications. This is generated
+# using the nss-db-gen script included with the RHUI Installer.
+qpid_client: /etc/rhui/qpid/client.crt
+
+# Full path to the NSS database used to secure QPID communications. This is generated
+# using the nss-db-gen script included with the RHUI Installer. Note: This must be
+# a directory containing a number of files, including the NSS database and password file.
+qpid_nss_db: /etc/rhui/qpid/nss
+
+# == RHUA ===========================================================================
+
+# The [rhua] section contains attributes describing a particular RHUA instance.
+[rhua]
+
+# Name of the RHUA configuration RPM created by RHUI tools.
+rpm_name: rh-rhua-config
+
+# Fully qualified hostname of the RHUA instance.
+hostname: RHUA_HOSTNAME
+
+# SSL certificate and private key to be installed on the RHUA. The CN of this certificate
+# must match the hostname listed above.
+ssl_cert: RHUA_SSL_CERT
+ssl_key: RHUA_SSL_KEY
+
+# CA certificate used to sign the RHUA's SSL certificate. This is needed by the CDS
+# instances when connecting back to the RHUA to synchronize content to verify the
+# RHUA certificate during the handshake.
+ca_cert: CA_CERT
+
+# If a proxy server is needed for the RHUA to connect to the internet, this is the hostname
+# of that server. If this is not specified, no proxy server will be used.
+# proxy_server_host: proxy.example.com
+
+# Port to access on the proxy server. This value has no effect if proxy_server_host is
+# not specified.
+# proxy_server_port: 443
+
+# Proxy server username. Omit if the proxy server does not require authentication.
+# proxy_server_username: admin
+
+# Proxy server password.
+# proxy_server_password: password
+
+
+# == CDS Instances ===========================================================================
+
+# There should be one [cds-*] section for each CDS to be used in the RHUI infrastructure.
+# The name between the [ ] must begin with "cds", however the remainder is arbitrary and must
+# only be unique with respect to other cds sections. There will be one CDS configuration RPM
+# generated for each section found.
+
+[cds-1]
+
+# Name of the RPM that will be created for this CDS configuration.
+rpm_name: rh-cds1-config
+
+# Fully qualified name of this CDS instance.
+hostname: CDS_01_HOSTNAME
+
+# SSL certificate and private key to be used by this CDS instance. The CN of this
+# certificate must match the hostname listed above.
+ssl_cert: CDS_01_SSL_CERT
+ssl_key: CDS_01_SSL_KEY
+
+[cds-2]
+rpm_name: rh-cds2-config
+hostname: CDS_02_HOSTNAME
+ssl_cert: CDS_02_SSL_CERT
+ssl_key: CDS_02_SSL_KEY
