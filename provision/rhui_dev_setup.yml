@@ -60,6 +60,16 @@
     - name: Install config rpms on CDSes
       local_action: shell cd ../install && install_config_rpms.sh
 
+- name: Run pulp-server init
+  hosts: rhua
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  tasks:
+    - name: pulp-server init
+      action: shell service pulp-server init
+
 
 - name: Restart Services on RHUA
   hosts: rhua
