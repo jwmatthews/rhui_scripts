@@ -70,12 +70,32 @@
       command: wget -O /etc/yum.repos.d/testing_rpms_rhui.repo http://${rhui_build_host}/pub/testing_rpms_rhui.repo
 
     - name: install pulp
-      action: yum name="pulp" state=latest
+      action: yum name=${item} state=latest
+      with_items:
+        - pulp
+        - qpid-cpp-server-ssl
+        - policycoreutils-python
+        - pulp-admin
+        - pulp-selinux-server
+        - pulp-consumer
+        - mod_wsgi
+        - gofer
+        - gofer-package
+        - rh-rhua-selinux-policy
       notify: restart httpd
 
-    - name: Setup devel env for Pulp
-      command: echo "Steps T.B.D."
-      notify: restart httpd
+    # Note mongodb requires a few minutes to preallocate it's db files
+    # We are starting mongodb now so while other tasks run it's DB files will be preallocated
+    - name: enable mongodb
+      action: service name=mongod state=started enabled=yes
+
+    - name: install rhui-tools
+      action: yum name=${item} state=latest
+      with_items:
+        - rh-rhui-tools
+
+    - name: Create NSS certificates for qpid
+      command: /usr/bin/nss-db-gen
 
   handlers:
     - name: restart httpd
@@ -96,11 +116,16 @@
       command: wget -O /etc/yum.repos.d/testing_rpms_rhui.repo http://${rhui_build_host}/pub/testing_rpms_rhui.repo
 
     - name: install pulp-cds
-      action: yum name="pulp-cds" state=latest
-      notify: restart httpd
-
-    - name: Setup devel env for Pulp
-      command: echo "Steps T.B.D."
+      action: yum name=${item} state=latest
+      with_items:
+       - pulp-cds
+       - pulp-selinux-server
+       - grinder
+       - gofer
+       - gofer-package
+       - mod_wsgi
+       - python-gofer
+       - rh-rhui-tools-debug-script
       notify: restart httpd
 
   handlers:

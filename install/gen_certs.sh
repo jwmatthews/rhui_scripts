@@ -1,3 +1,5 @@
+#!/bin/sh
+
 source ./hostnames
 source ./vars
 

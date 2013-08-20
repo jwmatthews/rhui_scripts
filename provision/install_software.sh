@@ -1,4 +1,4 @@
-export RHUI_HOSTS_FILE=./rhui_hosts
+export RHUI_HOSTS_FILE=../rhui_hosts
 export ANSIBLE_HOST_KEY_CHECKING=False
 export SSH_PRIV_KEY=~/.ssh/splice_rsa
 export LOG_DIR=./logs
