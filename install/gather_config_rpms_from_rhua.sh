@@ -1,6 +1,6 @@
 #!/bin/sh
 source ../hostnames.env
-source vars
+source ./vars
 
 if [ ! -d ${GEN_CONFIG_RPM_DIR} ]; then
   mkdir -p ${GEN_CONFIG_RPM_DIR}

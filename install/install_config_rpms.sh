@@ -1,6 +1,6 @@
 #!/bin/sh
 source ../hostnames.env
-source vars
+source ./vars
 
 echo "scp config rpm to CDS_01"
 ssh -t -t -i ${SSH_PRIV_KEY} ${SSH_USER}@${CDS_01} -x "sudo yum -y --nogpgcheck install /home/${SSH_USER}/rh-cds*.rpm"

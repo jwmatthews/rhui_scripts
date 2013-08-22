@@ -5,6 +5,9 @@
 ENT_CERT="./ent_cert.pem"
 REDHAT_CA_CERT="./redhat-uep.pem"
 
+RHUI_USER="admin"
+RHUI_PASS="admin"
+
 GEN_CONFIG_RPM_DIR="./generated_rpms"
 
 SSH_USER="ec2-user"

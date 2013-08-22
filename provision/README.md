@@ -26,14 +26,15 @@ Assumptions (to address later):
 
 Instructions: 
 
- 1. Set up your EC-2 environment variables
+ 1. Download an entitlement certificate from access.redhat.com and save at "../install/ent_cert.pem"  
+ 2. Set up your EC-2 environment variables
 
     * AWS_ACCESS_KEY_ID
     * AWS_SECRET_ACCESS_KEY
     * Note:  Markdown misinterprets above "_" to make the items italic.
 
- 2. Copy the splice SSH key to: ~/.ssh/splice_rsa
- 3. To setup new instances run:
+ 3. Copy the splice SSH key to: ~/.ssh/splice_rsa
+ 4. To setup new instances run:
   
   1. ./create_instances.sh - Wait ~10 minutes
   2. ./install_software.sh - Wait ~10 minutes

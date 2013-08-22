@@ -19,7 +19,7 @@ Directories Explained:
   - adjust hostname of each instance to use external hostname
   - install RHUI RPMs from RHUI Build Environment on RHUA & CDSes
 
- * configure
+ * install
 
   - Assuming ec2 instances already exist, run through setup steps to:
 
