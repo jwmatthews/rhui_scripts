@@ -23,4 +23,9 @@ pushd .
 cd provision
 ./create_instances.sh && ./install_software.sh && ./setup_rhui.sh
 popd
+echo ""
+echo ""
+echo "RHUI has been setup on the below hosts"
+echo ""
+cat hostnames.env
 
