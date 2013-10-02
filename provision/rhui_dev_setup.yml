@@ -8,7 +8,7 @@
   tasks:
 
     - name: scp setup scripts to RHUA
-      action: copy src="../install/${item}" dest="/home/ec2-user/${item}" owner=ec2-user
+      action: copy src="../install/${item}" dest="/home/ec2-user/${item}" owner=ec2-user mode=0775
       with_items:
         - gen_certs.sh
         - update_answers.sh
@@ -104,7 +104,7 @@
   tasks:
 
     - name: scp script to create initial user
-      action: copy src="../install/rhui_manager_initial_setup.sh" dest="/home/ec2-user/rhui_manager_initial_setup.sh" owner=ec2-user
+      action: copy src="../install/rhui_manager_initial_setup.sh" dest="/home/ec2-user/rhui_manager_initial_setup.sh" owner=ec2-user mode=0775
 
     - name: run rhui-manager for first time and give it path to CA
       action: shell sudo /home/ec2-user/rhui_manager_initial_setup.sh
@@ -119,7 +119,7 @@
   tasks:
 
     - name: scp script to create initial user
-      action: copy src="../install/ent_cert.pem" dest="/root/ent_cert.pem" owner=root group=root
+      action: copy src="../install/ent_cert.pem" dest="/root/ent_cert.pem" owner=root group=root mode=0664
 
     - name: upload content cert to rhui-manager
       action: shell sudo rhui-manager --username admin --password admin cert upload --cert /root/ent_cert.pem
@@ -134,7 +134,7 @@
   tasks:
 
     - name: scp script to create initial user
-      action: copy src="../install/${item}" dest="/home/ec2-user/${item}" owner=ec2-user group=ec2-user
+      action: copy src="../install/${item}" dest="/home/ec2-user/${item}" owner=ec2-user group=ec2-user mode=0775
       with_items:
         - rhui_manager_initial_cds_setup.sh
 

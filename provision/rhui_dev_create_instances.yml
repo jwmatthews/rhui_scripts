@@ -37,6 +37,7 @@
       rhua_security_group: rhui_dev_rhua
       cds_security_group: rhui_dev_cds
       image: ami-f6f16b9f
+      region: us-east-1
       cds_instance_count: 2
       rhui_hosts_file: "{{ lookup('env', 'RHUI_HOSTS_FILE') }}"
       ebs_pulp_data_size: 100
@@ -56,6 +57,7 @@
         group: ${rhua_security_group}
         instance_type: ${instance_type}
         image: ${image}
+        region: ${region}
         wait: yes
         count: 1
         instance_tags: '{"Name": "{{ user_name.stdout }} RHUA {{ datestamp.stdout }}"}'
@@ -68,6 +70,7 @@
         group: ${cds_security_group}
         instance_type: ${instance_type}
         image: ${image}
+        region: ${region}
         wait: yes
         count: ${cds_instance_count}
         instance_tags: '{"Name": "{{ user_name.stdout }} CDS {{ datestamp.stdout }}"}'
@@ -82,11 +85,11 @@
       with_items: ${ec2_cds.instances}
 
     - name: Create a volume for pulp content and attach for the rhua
-      local_action: ec2_vol volume_size=${ebs_pulp_data_size} instance=${item.id} device_name=${ebs_pulp_data_part}
+      local_action: ec2_vol volume_size=${ebs_pulp_data_size} instance=${item.id} device_name=${ebs_pulp_data_part} region=${region}
       with_items: ${ec2_rhua.instances}
 
     - name: Create a volume for pulp content and attach for the cds
-      local_action: ec2_vol volume_size=${ebs_pulp_data_size} instance=${item.id} device_name=${ebs_pulp_data_part}
+      local_action: ec2_vol volume_size=${ebs_pulp_data_size} instance=${item.id} device_name=${ebs_pulp_data_part} region=${region}
       with_items: ${ec2_cds.instances}
 
     - name: Wait for SSH to be available on CDS

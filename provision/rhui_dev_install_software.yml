@@ -70,7 +70,7 @@
       command: wget -O /etc/yum.repos.d/testing_rpms_rhui.repo http://${rhui_build_host}/pub/testing_rpms_rhui.repo
 
     - name: install pulp
-      action: yum name=${item} state=latest
+      action: yum name=${item} state=latest disablerepo=epel
       with_items:
         - pulp
         - qpid-cpp-server-ssl
