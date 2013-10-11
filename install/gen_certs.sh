@@ -6,7 +6,7 @@ source ./vars
 echo "Creating CA: ${CA_CERT}"
 echo 10 > ${CA_SRL}
 openssl genrsa -out ${CA_KEY} 2048
-openssl req -new -x509 -days ${DAYS} -key ${CA_KEY} -out ${CA_CERT} -subj "/C=US/ST=NC/L=Raleigh/O=Red Hat/OU=RHUI_Test/CN=RHUI_Test-Root-CA"
+openssl req -new -x509 -days ${DAYS} -key ${CA_KEY} -out ${CA_CERT} -subj "/C=US/ST=NC/L=Raleigh/O=Red Hat/OU=RHUI_Test/CN=Red Hat Cloud Enablement"
 
 echo "Creating SSL cert for RHUA: ${SSL_CERT_RHUA}"
 openssl genrsa -out ${SSL_KEY_RHUA} 2048
