@@ -12,32 +12,3 @@ GEN_CONFIG_RPM_DIR="./generated_rpms"
 
 SSH_USER="ec2-user"
 SSH_PRIV_KEY="${HOME}/.ssh/splice_rsa"
-
-DAYS="10950"
-
-ANSWERS_TEMPLATE="./rhui_answers.template"
-ANSWERS="./rhui.answers"
-
-CERT_DIR="/tmp/rhui_certs"
-CA_CERT="${CERT_DIR}/ca.crt"
-CA_KEY="${CERT_DIR}/ca.key"
-CA_SRL="${CERT_DIR}/ca.srl"
-
-SSL_KEY_RHUA="${CERT_DIR}/ssl_RHUA__${RHUA}.key"
-SSL_CSR_RHUA="${CERT_DIR}/ssl_RHUA__${RHUA}.csr"
-SSL_CERT_RHUA="${CERT_DIR}/ssl_RHUA__${RHUA}.crt"
-
-SSL_KEY_CDS_01="${CERT_DIR}/ssl_CDS_01__${CDS_01}.key"
-SSL_CSR_CDS_01="${CERT_DIR}/ssl_CDS_01__${CDS_01}.csr"
-SSL_CERT_CDS_01="${CERT_DIR}/ssl_CDS_01__${CDS_01}.crt"
-
-SSL_KEY_CDS_02="${CERT_DIR}/ssl_CDS_02__${CDS_02}.key"
-SSL_CSR_CDS_02="${CERT_DIR}/ssl_CDS_02__${CDS_02}.csr"
-SSL_CERT_CDS_02="${CERT_DIR}/ssl_CDS_02__${CDS_02}.crt"
-
-
-if [ ! -e ${CERT_DIR} ]; then
-  mkdir ${CERT_DIR}
-fi
-
-

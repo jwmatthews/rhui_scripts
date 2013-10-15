@@ -11,8 +11,6 @@
       action: copy src="../install/${item}" dest="/home/ec2-user/${item}" owner=ec2-user mode=0775
       with_items:
         - gen_certs.sh
-        - update_answers.sh
-        - rhui_answers.template
         - vars
         - redhat-uep.pem
 
@@ -22,11 +20,8 @@
     - name: Generate X509 certificates
       command: sudo /home/ec2-user/gen_certs.sh chdir=/home/ec2-user
 
-    - name: Update RHUI answers file
-      command: sudo /home/ec2-user/update_answers.sh chdir=/home/ec2-user
-
     - name: Run rhui-installers
-      command: sudo rhui-installer /home/ec2-user/rhui.answers chdir=/home/ec2-user
+      command: sudo rhui-installer /home/ec2-user/rhui_certs/answers chdir=/home/ec2-user
 
     #- name: Fetch CDS rpms from RHUA
     #  action: fetch src=/tmp/rhui/${item} dest=./${item} flat=true
@@ -35,7 +30,7 @@
     #    - rh-cds2-config-2.1-2.el6.noarch.rpm
 
     - name: Install rh-rhua-config on RHUA
-      action: shell yum -y --nogpgcheck localinstall /tmp/rhui/rh-rhua-config*
+      action: shell yum -y --nogpgcheck localinstall /etc/rhui/rh-rhua-config*
 
 ####
 # Performing below copy & install steps in shell script
