@@ -21,7 +21,7 @@ fi
 
 pushd .
 cd provision
-./create_instances.sh && ./install_software.sh && ./setup_rhui.sh
+time (./create_instances.sh && ./install_software.sh && ./setup_rhui.sh)
 popd
 echo ""
 echo ""
