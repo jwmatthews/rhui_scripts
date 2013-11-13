@@ -44,7 +44,7 @@ Create X509 certificates for RHUI install:
 
   1. Update the file: 'hostnames' to match the RHUA/CDS1/CDS2 external dns names you will use
   2. Run: ./gen_certs.sh
-  3. See /tmp/rhui_certs for the generated certs
+  3. See ./rhui-certs for the generated certs
 
 
 Generate an answers file:

@@ -2,7 +2,10 @@
 # Note:  you must download a valid entitlement certificate from Red Hat
 # Do _not_ check in the entitlement certificate to git.
 ###
-ENT_CERT="./ent_cert.pem"
+
+# If you change ENT_CERT also update provision/rhui_dev_setup.yml
+#
+ENT_CERT="ent_cert.pem"
 REDHAT_CA_CERT="./redhat-uep.pem"
 
 RHUI_USER="admin"
@@ -12,3 +15,5 @@ GEN_CONFIG_RPM_DIR="./generated_rpms"
 
 SSH_USER="ec2-user"
 SSH_PRIV_KEY="${HOME}/.ssh/splice_rsa"
+
+RHUI_CERTS_DIR="/home/ec2-user/rhui-certs/certs"

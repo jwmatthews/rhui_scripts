@@ -4,6 +4,9 @@
   user: ec2-user
   sudo: yes
   gather_facts: true
+  vars:
+      answers_file: "/home/ec2-user/rhui-certs/answers"
+  
 
   tasks:
 
@@ -21,7 +24,7 @@
       command: sudo /home/ec2-user/gen_certs.sh chdir=/home/ec2-user
 
     - name: Run rhui-installers
-      command: sudo rhui-installer /home/ec2-user/rhui_certs/answers chdir=/home/ec2-user
+      command: sudo rhui-installer ${answers_file} chdir=/home/ec2-user
 
     #- name: Fetch CDS rpms from RHUA
     #  action: fetch src=/tmp/rhui/${item} dest=./${item} flat=true
@@ -110,14 +113,16 @@
   user: ec2-user
   sudo: yes
   gather_facts: true
+  vars:
+    content_cert: ent_cert.pem
 
   tasks:
 
     - name: scp script to create initial user
-      action: copy src="../install/ent_cert.pem" dest="/root/ent_cert.pem" owner=root group=root mode=0664
+      action: copy src="../install/${content_cert}" dest="/root/${content_cert}" owner=root group=root mode=0664
 
     - name: upload content cert to rhui-manager
-      action: shell sudo rhui-manager --username admin --password admin cert upload --cert /root/ent_cert.pem
+      action: shell sudo rhui-manager --username admin --password admin cert upload --cert /root/${content_cert}
 
 
 - name: Register CDS1 and CDS2
