@@ -1,0 +1,217 @@
+---
+# This playbook will configure a Pulp v2 EC2 instance.
+#
+#  Playbook assumes the following:
+#  - Security groups exists ahead of time
+#     - pulp
+
+- name: Stage instance(s)
+  hosts: localhost
+  connection: local
+  user: root
+  gather_facts: false
+
+  tags:
+      - stage
+
+  vars:
+      keypair: splice
+      instance_type: m1.large
+      security_group: pulp
+      image: ami-f6f16b9f
+      region: us-east-1
+      pulp_hosts_file: "{{ lookup('env', 'PULP_HOSTS_FILE') }}"
+      ebs_pulp_data_size: 750
+      ebs_pulp_data_part: sdh
+
+  tasks:
+    - local_action: shell id -u -n
+      register: user_name
+
+    - local_action: shell date +"%Y-%m-%d %r"
+      register: datestamp
+
+    - name: Launch Pulp instance
+      local_action:
+        module: ec2
+        keypair: ${keypair}
+        group: ${security_group}
+        instance_type: ${instance_type}
+        image: ${image}
+        region: ${region}
+        wait: yes
+        count: 1
+        instance_tags: '{"Name": "{{ user_name.stdout }} Pulp_v2 {{ datestamp.stdout }}"}'
+      register: ec2_pulp
+
+    - name: Add pulp instance to pulp group
+      local_action: add_host name=${item.public_dns_name} groups=pulp
+      with_items: ${ec2_pulp.instances}
+
+    - name: Create a volume for pulp content and attach
+      local_action: ec2_vol volume_size=${ebs_pulp_data_size} instance=${item.id} device_name=${ebs_pulp_data_part} region=${region}
+      with_items: ${ec2_pulp.instances}
+
+    - name: Wait for SSH to be available
+      local_action: wait_for host={{item.public_dns_name}} port=22 delay=60 timeout=320 state=started
+      with_items: ${ec2_pulp.instances}
+
+    - name: Sleep for 30 seconds to ensure that EC2 public keys have had time to be copied
+      local_action: shell sleep 30
+
+    - name: Write [pulp] header into {{pulp_hosts_file}}
+      local_action: shell echo '[pulp]' >> ${pulp_hosts_file}
+
+    - name: Write pulp info into {{pulp_hosts_file}}
+      local_action: shell echo '{{item}}' >> ${pulp_hosts_file}
+      with_items: ${groups.pulp}
+
+    - name: Write pulp info into bash env file
+      local_action: shell echo 'PULP="{{item}}"' > ../hostnames.env
+      with_items: ${groups.pulp}
+
+
+- name: Create LVM file systems for Pulp
+  hosts: pulp
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  tags:
+    - lvm
+
+  vars:
+    - ebs_pulp_part: /dev/xvdl
+    - vg: vg0
+    - vol_name: vol1
+    - var_lib_pulp_part: /dev/${vg}/${vol_name}
+    - pulp_mount_point: /var/lib/pulp
+
+  tasks:
+    - name: Create PV for Volume group
+      command: pvcreate ${ebs_pulp_part}
+
+    - name: Create Volume Group
+      command: vgcreate ${vg} ${ebs_pulp_part}
+
+    - name: Create Logical Volume
+      command: lvcreate -l 100%FREE -n ${vol_name} ${vg}
+
+    - name: Create filesystem on new LV
+      command: /sbin/mkfs.ext3 -q ${var_lib_pulp_part}
+
+    - name: Create /var/lib/pulp mount point 
+      command: mkdir ${pulp_mount_point}
+
+    - name: Mount EBS volume
+      action: mount name=${pulp_mount_point} src=${var_lib_pulp_part} fstype=ext3 state=mounted
+
+- name: Install Pulp RPMs
+  hosts: pulp
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  vars:
+    - pulp_repo_file: http://repos.fedorapeople.org/repos/pulp/pulp/rhel-pulp.repo
+  
+  tasks:
+    - name: get epel-repo rpm RHEL6
+      get_url: dest=/tmp/epel-release.rpm  url=http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+      when: ansible_os_family == 'RedHat' and ansible_lsb.major_release|int == 6
+
+    - name: install epel-repo rpm
+      action: yum pkg=/tmp/epel-release.rpm state=installed
+
+    - name: install pulp repo
+      command: wget -O /etc/yum.repos.d/rhel-pulp.repo ${pulp_repo_file}
+
+    - name: install pulp
+      command: yum -y groupinstall pulp-server pulp-admin
+
+    - name: enable mongodb
+      action: service name=mongod state=started enabled=yes
+
+    - name: enable qpidd
+      action: service name=qpidd state=started enabled=yes
+
+    - name: scp wait_for_mongo.sh
+      action: copy src="../provision/files/${item}" dest="/home/ec2-user/${item}" owner=ec2-user group=ec2-user
+      with_items:
+        - wait_for_mongo.sh
+
+    - name: Wait for mongodb to allocate it's initial files and become available
+      command: /home/ec2-user/wait_for_mongo.sh
+
+    - name: Initialize Pulp DB
+      command: pulp-manage-db
+
+    - name: enable httpd
+      action: service name=httpd state=started enabled=yes
+
+    - name: update firewall
+      action: copy src="../provision/files/${item}" dest="/${item}" owner=root group=root
+      with_items:
+        - etc/sysconfig/iptables
+      notify: restart iptables
+
+    - name: install extra rpms to make devel env nicer
+      action: yum name=$item state=present
+      with_items:
+        - vim-enhanced
+        - git
+        - tig
+
+    - name: scp sample .rc files over to hosts to make editing easier for root
+      action: copy src="../provision/files/${item}" dest="/root/.${item}" owner=root group=root
+      with_items:
+        - bashrc
+        - vimrc
+
+    - name: scp sample .rc files over to hosts to make editing easier for ec2-user
+      action: copy src="../provision/files/${item}" dest="/home/ec2-user/.${item}" owner=ec2-user group=ec2-user
+      with_items:
+        - bashrc
+        - vimrc
+
+  handlers:
+    - name: restart iptables
+      action: service name=iptables state=restarted
+
+
+- name: Alter hostname on remote instance and regenerate new HTTP SSL Certificates
+  hosts: pulp
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  tasks:
+    - name: scp script over to update external hostname
+      action: copy src="../provision/files/adjust_external_hostname.sh" dest="/home/ec2-user/" owner=ec2-user group=ec2-user mode=0755
+
+    - name: Query ec2 metadata to get external hostname then update /etc/sysconfig/network
+      command: /home/ec2-user/adjust_external_hostname.sh
+
+    - name: Ensure /git exists
+      file: dest=/git state=directory
+
+    - name: Git checkout pulp 'rhui' branch
+      action: git repo=https://github.com/splice/pulp.git dest=/git/pulp version=rhui
+
+    - name: Regenerate new https ssl certificates
+      command: "cd /git/pulp/playpen/certs && ./setup.sh"
+
+
+- name: Alter pulp configuration
+  hosts: pulp
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  tasks:
+    - name: scp script over to update pulp configuration
+      action: copy src="adjust_pulp_config.sh" dest="/home/ec2-user/" owner=ec2-user group=ec2-user mode=0755
+
+    - name: Update pulp configuration
+      command: /home/ec2-user/adjust_pulp_config.sh
+
