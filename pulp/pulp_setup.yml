@@ -199,7 +199,7 @@
       action: git repo=https://github.com/splice/pulp.git dest=/git/pulp version=rhui
 
     - name: Regenerate new https ssl certificates
-      command: "cd /git/pulp/playpen/certs && ./setup.sh"
+      command: chdir=/git/pulp/playpen/certs ./setup.sh
 
 
 - name: Alter pulp configuration
