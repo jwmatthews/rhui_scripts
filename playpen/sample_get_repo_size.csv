@@ -1,0 +1,10 @@
+rhel-5-server-rhui-debug-rpms-5Server-i386,https://cdn.redhat.com//content/dist/rhel/rhui/server/5/5Server/i386/debug
+rhel-5-server-rhui-debug-rpms-5Server-x86_64,https://cdn.redhat.com//content/dist/rhel/rhui/server/5/5Server/x86_64/debug
+rhel-5-server-rhui-rpms-5Server-i386,https://cdn.redhat.com//content/dist/rhel/rhui/server/5/5Server/i386/os
+rhel-5-server-rhui-rpms-5Server-x86_64,https://cdn.redhat.com//content/dist/rhel/rhui/server/5/5Server/x86_64/os
+rhel-6-server-rhui-rpms-6Server-x86_64,https://cdn.redhat.com//content/dist/rhel/rhui/server/6/6Server/x86_64/os
+rhel-6-server-rhui-rpms-6Server-i386,https://cdn.redhat.com//content/dist/rhel/rhui/server/6/6Server/i386/os
+rhel-6-server-rhui-debug-rpms-6Server-x86_64,https://cdn.redhat.com//content/dist/rhel/rhui/server/6/6Server/x86_64/debug
+rhel-6-server-rhui-debug-rpms-6Server-i386,https://cdn.redhat.com//content/dist/rhel/rhui/server/6/6Server/i386/debug
+rhel-x86_64-6-rhui-2-debug-rpms-6Server-x86_64,https://cdn.redhat.com//content/dist/rhel/rhui/server/6/6Server/x86_64/rhui/2/debug
+rhel-x86_64-6-rhui-2-rpms-6Server-x86_64,https://cdn.redhat.com//content/dist/rhel/rhui/server/6/6Server/x86_64/rhui/2/os
