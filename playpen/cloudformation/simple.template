@@ -1,0 +1,119 @@
+{
+    "Description": "Single Instance for testing", 
+    "Parameters": {
+        "KeyName": {
+            "Type": "String", 
+            "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instances"
+        },
+        "OwnerName": {
+            "Type": "String", 
+            "Description": "Name of user launching these instances, helps to distinguish in ec2 console"
+        },
+        "InstanceType": {
+            "Type": "String", 
+            "Description": "Instance type for instances",
+            "Default": "m1.large"
+        }
+    }, 
+    "AWSTemplateFormatVersion": "2010-09-09", 
+    "Outputs": {}, 
+    "Resources": {
+        "myInstance": {
+            "Type": "AWS::EC2::Instance", 
+            "Properties": {
+                "Tags": [
+                    {
+                        "Value": {
+                            "Fn::Join": [
+                                "_", 
+                                [
+                                    {
+                                        "Ref": "OwnerName"
+                                    },
+                                    "RHUA"
+                                ]
+                            ]
+                        }, 
+                        "Key": "Name"
+                    }, 
+                    {
+                        "Value": "RHUA", 
+                        "Key": "Role"
+                    } 
+                ], 
+                "KeyName": {
+                    "Ref": "KeyName"
+                }, 
+                "SecurityGroups": [
+                    {
+                        "Ref": "RHUIsecuritygroup"
+                    }
+                ], 
+                "InstanceType": { "Ref": "InstanceType"}, 
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "RHEL64", 
+                        {
+                            "Ref": "AWS::Region"
+                        }, 
+                        "AMI"
+                    ]
+                }
+            }
+        },
+        "RHUIsecuritygroup": {
+            "Type": "AWS::EC2::SecurityGroup", 
+            "Properties": {
+                "SecurityGroupIngress": [
+                    {
+                        "ToPort": "22", 
+                        "FromPort": "22", 
+                        "IpProtocol": "tcp", 
+                        "CidrIp": "0.0.0.0/0"
+                    }, 
+                    {
+                        "ToPort": "443", 
+                        "FromPort": "443", 
+                        "IpProtocol": "tcp", 
+                        "CidrIp": "0.0.0.0/0"
+                    }, 
+                    {
+                        "ToPort": "5674", 
+                        "FromPort": "5674", 
+                        "IpProtocol": "tcp", 
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ], 
+                "GroupDescription": "RHUI security group"
+            }
+        }
+    }, 
+    "Mappings": {
+        "RHEL64": {
+            "ap-southeast-1": {
+                "AMI": "ami-3a367b68"
+            }, 
+            "ap-southeast-2": {
+                "AMI": "ami-8c1f89b6"
+            }, 
+            "us-west-2": {
+                "AMI": "ami-5e57dd6e"
+            }, 
+            "us-east-1": {
+                "AMI": "ami-d94bdcb0"
+            }, 
+            "ap-northeast-1": {
+                "AMI": "ami-8f11958e"
+            }, 
+            "us-west-1": {
+                "AMI": "ami-fc9cbfb9"
+            }, 
+            "eu-west-1": {
+                "AMI": "ami-22c8c156"
+            }, 
+            "sa-east-1": {
+                "AMI": "ami-8bb76c96"
+            }
+        }
+    }
+}
