@@ -28,5 +28,8 @@ for i in instances:
     for k in keys:
         if i.tags.has_key(k):
             print "\t%s = %s" % (k, i.tags[k])
+    print "BlockDeviceMapping:" 
+    for partition in i.block_device_mapping:
+        print "\t%s" % (partition)
     print "\n"
 

@@ -14,7 +14,10 @@ import os
 import random
 import string
 import sys
+import threading
 import time
+import yaml
+from datetime import datetime
 from optparse import OptionParser
 
 from boto import cloudformation
@@ -24,7 +27,6 @@ from boto.manage.cmdshell import sshclient_from_instance
 
 def read_env(var):
     return os.environ[var]
-
 
 DEFAULT_AWS_ACCESS_KEY_ID=read_env("AWS_ACCESS_KEY_ID")
 DEFAULT_AWS_SECRET_ACCESS_KEY=read_env("AWS_SECRET_ACCESS_KEY")
@@ -44,6 +46,10 @@ def get_user():
 
 def parse_args():
     parser = OptionParser(description='Create CloudFormation stack')
+    # Required parameter for the input cloud formation template file
+    parser.add_option('--template',
+        default=None, help='Path to AWS Cloud Formation template file in JSON Format')
+    # Optional parameters
     parser.add_option('--debug', action='store_true', 
         default=False, help='debug mode')
     parser.add_option('--ssh_user',
@@ -60,12 +66,10 @@ def parse_args():
         default="us-east-1", help='use specified region')
     parser.add_option('--timeout', type=int,
         default=10, help='stack creation timeout')
-    parser.add_option('--cloudformfile',
-        default=None, help='Path to AWS Cloud Formation configuration file in JSON Format')
-    parser.add_option('--skip_wait_ssh', action='store_const', const=False,
-        default=True, help='If set will skip waiting for SSH to be available on instances before script returns')
-    parser.add_option('--out_file', 
+    parser.add_option('--ans_out_file', 
         default="provisioned_instances.ansible", help="Filename to store ansible ec2 inventory information representing provisioned instances")
+    parser.add_option('--yaml_out_file', 
+        default="provisioned_stack.yaml", help="Filename to write YAML info about provisioned cloud formation stack.")
     parser.add_option('--instance_type',
         default=DEFAULT_INSTANCE_TYPE, help="AWS EC2 Instance type for launched instances, defaults to %s" % (DEFAULT_INSTANCE_TYPE))
     (opts, args) = parser.parse_args()
@@ -77,6 +81,12 @@ def setup_logging(debug=False):
     else:
         loglevel = logging.INFO
     logging.basicConfig(level=loglevel, format='%(asctime)s %(levelname)s %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
+
+def get_stack_id():
+    random_str = ''.join(random.choice(string.ascii_lowercase) for x in range(10))
+    date_str = datetime.now().strftime("%Y%m%d")
+    stack_id = "%sRHUIStack%s%s" % (get_user(), date_str, random_str)
+    return stack_id   
 
 def get_connections(region_name, aws_access_key_id, aws_secret_access_key):
     con_ec2 = ec2.connect_to_region(region_name,
@@ -120,6 +130,7 @@ def create_cloudformation(con_cf, json_body, parameters, stack_id, timeout):
                     break
                 if event.resource_type == "AWS::CloudFormation::Stack" and event.resource_status == "ROLLBACK_COMPLETE":
                     logging.info("Stack creation failed")
+                    logging.info(event)
                     is_complete = True
                     break
         except Exception, e:
@@ -140,14 +151,41 @@ def get_instances(con_ec2, instance_ids):
 
 def get_instance_details(instances):
     keys = ["public_dns_name", "state", "state_code", "ip_address", 
-        "instance_type", "key_name", "launch_time", "tags"]
+        "instance_type", "key_name", "launch_time", "tags", "block_device_mapping"]
     details = {}
     for inst in instances:
         info = {}
         for k in keys:
             info[k] = getattr(inst, k)
+        info["instance"] = inst
         details[info["public_dns_name"]] = info
     return details
+
+def write_bash_env(stack_id, instance_details, out_file):
+    data = "STACK_ID=%s\n" % (stack_id)
+    for inst in instance_details.values():
+        dns_name = inst["public_dns_name"]
+        role = inst["tags"]["Role"]
+        data += "%s=%s\n" % (role, dns_name)
+    f = open(out_file, "w")
+    try:
+        f.write(data)
+    finally:
+        f.close()
+
+def write_yaml_conf(stack_id, instance_details, out_file):
+    data = {}
+    data["STACK_ID"] = stack_id
+    for inst in instance_details.values():
+        role = inst["tags"]["Role"]
+        data[role] = {}
+        dns_name = inst["public_dns_name"]
+        data[role]["hostname"] = dns_name
+    f = open(out_file, "w")
+    try:
+        f.write(yaml.dump(data, default_flow_style=False))
+    finally:
+        f.close()
 
 def write_ansible_inventory(instance_details, out_file):
     data = "localhost\n"
@@ -178,9 +216,10 @@ def try_port_22(hostname):
     s.close()
     return status
 
-def wait_for_ssh(hostnames, ssh_user, ssh_priv_key_path, timeout_in_minutes=5):
+def wait_for_ssh(hostnames, ssh_user, ssh_priv_key_path, timeout_in_minutes=15):
     # Loop through instances and wait for all to have a SSH service that is acceptable
     for hostname in hostnames:
+        logging.info("Waiting for SSH on %s" % (hostname))
         success = False
         start = time.time()
         while True:
@@ -194,30 +233,147 @@ def wait_for_ssh(hostnames, ssh_user, ssh_priv_key_path, timeout_in_minutes=5):
         if not success:
             # Break out of the for loop, an instance didn't respond to SSH
             return False
+        logging.info("SSH is up on: %s" % (hostname))
     return True
 
+def run_cmd(ssh_client, cmd):
+    # We need to run with a pty so 'sudo' commands will work.
+    output = ""
+    logging.info("Running: '%s' on '%s'" % (cmd, ssh_client.server.hostname))
+    channel = ssh_client.run_pty(cmd)
+    while True:
+        if channel.recv_ready():
+            output += channel.recv(65536)
+        if channel.exit_status_ready():
+            exit_code = channel.recv_exit_status()
+            channel.close()
+            break
+    logging.info("Completed: '%s' on '%s'\nExit Code: %s\nOutput: %s" % (cmd, ssh_client.server.hostname, exit_code, output))
+    if exit_code:
+        raise Exception("Failed to run: '%s'\nExit Code of: %s" % (cmd, exit_code))
+
+def _create_log_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
+    # Creating the log partition requires that we:
+    # - Mount new partition to a temp location
+    # - Move existing log files over
+    # - Remount new partition to desired location
+    cmd = "sudo pvcreate %s" % (blockdevice)
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo vgcreate %s %s" % (vgname, blockdevice)
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo lvcreate -l 100%%FREE -n %s %s" % (lvname, vgname)
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo /sbin/mkfs.ext3 -q /dev/%s/%s" % (vgname, lvname)
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo mkdir /var/log.new"
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo mount /dev/%s/%s /var/log.new" % (vgname, lvname)
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo mv /var/log/* /var/log.new/"
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo mv /var/log /var/log.old"
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo umount /var/log.new"
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo mv /var/log.new /var/log"
+    run_cmd(ssh_client, cmd)
+
+    cmd = "echo '/dev/%s/%s %s ext3 defaults 0 0' | sudo tee -a /etc/fstab" % (vgname, lvname, mountpoint)
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo mount %s" % (mountpoint)
+    run_cmd(ssh_client, cmd)
+
+def _create_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
+    cmd = "sudo pvcreate %s" % (blockdevice)
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo vgcreate %s %s" % (vgname, blockdevice)
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo lvcreate -l 100%%FREE -n %s %s" % (lvname, vgname)
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo /sbin/mkfs.ext3 -q /dev/%s/%s" % (vgname, lvname)
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo mkdir %s" % (mountpoint)
+    run_cmd(ssh_client, cmd)
+
+    # we can't run: sudo echo 'something' >> /etc/fstab.txt
+    # so we are using 'tee' in place of echo
+    cmd = "echo '/dev/%s/%s %s ext3 defaults 0 0' | sudo tee -a /etc/fstab" % (vgname, lvname, mountpoint)
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo mount %s" % (mountpoint)
+    run_cmd(ssh_client, cmd)
+
+def setup_filesystem_on_host(instance_details, ssh_user, ssh_priv_key_path):
+    dns_name = instance_details["public_dns_name"]
+    role = instance_details["tags"]["Role"]
+    logging.info("Setting up LVM filesystems on '%s' which is a '%s'" % (dns_name, role))
+
+    ssh_client = sshclient_from_instance(instance_details["instance"], 
+        ssh_key_file=ssh_priv_key_path, user_name=ssh_user)
+    pulp_mountpoint = "/var/lib/pulp"        
+    if role.upper().startswith("CDS"):
+        pulp_mountpoint = "/var/lib/pulp-cds"
+    # Expected partitions
+    # /dev/xvdq for /var/log
+    # /dev/xvdr for /var/lib/mongodb 
+    # /dev/xvdt for /var/lib/pulp or /var/lib/pulp-cds
+    logging.info("Setting up /var/log on '%s'" % (dns_name))
+    _create_log_part(ssh_client, blockdevice="/dev/xvdq", 
+        vgname="vg0", lvname="var_log", mountpoint="/var/log")
+    logging.info("Setting up /var/lib/mongodb on '%s'" % (dns_name))
+    _create_part(ssh_client, blockdevice="/dev/xvdr", 
+        vgname="vg1", lvname="var_mongodb", mountpoint="/var/lib/mongodb")
+    logging.info("Setting up %s on '%s'" % (pulp_mountpoint, dns_name))
+    _create_part(ssh_client, blockdevice="/dev/xvdt", 
+        vgname="vg2", lvname="var_pulp", mountpoint=pulp_mountpoint)
+
+def setup_filesystems(inst_details, ssh_user, ssh_priv_key_path):
+    # Will create a thread per instance so filesystem setup may happen in parallel
+    # Steps are executed in parallel to minimize the impact of 
+    #  mkfs commands which take several minutes per filesystem
+    threads = []
+    for inst in inst_details.values():
+        t = threading.Thread(target=setup_filesystem_on_host, args=(inst, ssh_user, ssh_priv_key_path))
+        t.start()
+        threads.append(t)
+    for t in threads:
+        t.join()
 
 if __name__ == "__main__":
     start = time.time()
     opts = parse_args()
+    ans_out_file = opts.ans_out_file
     aws_access_key_id = opts.aws_access_key_id
     aws_secret_access_key = opts.aws_secret_access_key
-    cloudformfile = opts.cloudformfile
+    cloudformfile = opts.template
     debug = opts.debug
     instance_type = opts.instance_type
-    out_file = opts.out_file
     region_name = opts.region
     ssh_key_name = opts.ssh_key_name
     ssh_priv_key_path = opts.ssh_priv_key_path
     ssh_user = opts.ssh_user
-    skip_wait_ssh = opts.skip_wait_ssh
     timeout = opts.timeout
+    yaml_out_file = opts.yaml_out_file
     user_name = get_user()
 
     setup_logging(debug)
 
     if not cloudformfile:
-        logging.info("Please re-run with --cloudformfile option set")
+        logging.info("Please re-run with --template argument set")
         sys.exit(1)
 
     con_ec2, con_cf = get_connections(region_name=region_name, 
@@ -225,7 +381,7 @@ if __name__ == "__main__":
 
     # Launch EC-2 resources
     cloud_form_json_body = read_file(cloudformfile)
-    stack_id = "RHUIStack" + ''.join(random.choice(string.ascii_lowercase) for x in range(10))
+    stack_id = get_stack_id()
     parameters = [("KeyName", ssh_key_name), ("OwnerName",user_name), ("InstanceType",instance_type)]
     instance_ids = create_cloudformation(con_cf=con_cf,
         json_body=cloud_form_json_body,
@@ -240,7 +396,8 @@ if __name__ == "__main__":
     instances = get_instances(con_ec2, instance_ids)
     details = get_instance_details(instances)
     hostnames = [x["public_dns_name"] for x in details.values()]
-    write_ansible_inventory(details, out_file)
+    #write_ansible_inventory(details, ans_out_file)
+    write_yaml_conf(stack_id, details, yaml_out_file)
 
     logging.info("Will wait for SSH to come up for below instances:")
     for inst_details in details.values():
@@ -250,6 +407,9 @@ if __name__ == "__main__":
         logging.info("\n")
     if not wait_for_ssh(hostnames, ssh_user, ssh_priv_key_path):
         logging.error("\n***Stack is not complete, problem with SSH on an instance.***\n")
+        sys.exit(1)
+
+    setup_filesystems(details, ssh_user, ssh_priv_key_path)
 
     logging.info("StackID: %s" % (stack_id))
     end = time.time()
