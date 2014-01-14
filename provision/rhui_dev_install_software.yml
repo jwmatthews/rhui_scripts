@@ -1,5 +1,5 @@
 ---
-- name: Install Packages/Git Repos for both RHUA & CDS
+- name: Install Common Packages for both RHUA & CDS
   hosts: rhua:cds
   user: ec2-user
   sudo: yes
@@ -38,24 +38,17 @@
         - bashrc
         - vimrc
 
-    - name: Ensure /git exists
-      file: dest=/git state=directory
+    - include: tasks/prep_repo_install.yml
+      when: iso_path == ""
 
-    - name: Git checkout pulp 'rhui' branch
-      action: git repo=https://github.com/splice/pulp.git dest=/git/pulp version=rhui
-
-    - name: Git checkout gofer 'rhui' branch
-      action: git repo=https://github.com/splice/gofer.git dest=/git/gofer version=rhui
-
-    - name: Git checkout grinder 'rhui' branch
-      action: git repo=https://git.fedorahosted.org/git/grinder.git dest=/git/grinder version=rhui
+    - include: tasks/prep_iso_install.yml
+      when: iso_path != ""
 
   handlers:
     - name: restart iptables
       action: service name=iptables state=restarted
 
-
-- name: Install Packages/Git Repos for RHUA
+- name: Install Packages for RHUA
   hosts: rhua
   user: ec2-user
   sudo: yes
@@ -65,43 +58,16 @@
     - rhui_build_host: ec2-50-17-26-28.compute-1.amazonaws.com
 
   tasks:
+    - include: tasks/rhua_repo_install_software.yml
+      when: iso_path == ""
 
-    - name: install rhui testing yum repo
-      command: wget -O /etc/yum.repos.d/testing_rpms_rhui.repo http://${rhui_build_host}/pub/testing_rpms_rhui.repo
-
-    - name: install pulp
-      action: yum name=${item} state=latest disablerepo=epel
-      with_items:
-        - pulp
-        - qpid-cpp-server-ssl
-        - policycoreutils-python
-        - pulp-admin
-        - pulp-selinux-server
-        - pulp-consumer
-        - mod_wsgi
-        - gofer
-        - gofer-package
-        - rh-rhua-selinux-policy
-      notify: restart httpd
-
-    # Note mongodb requires a few minutes to preallocate it's db files
-    # We are starting mongodb now so while other tasks run it's DB files will be preallocated
-    - name: enable mongodb
-      action: service name=mongod state=started enabled=yes
-
-    - name: install rhui-tools
-      action: yum name=${item} state=latest
-      with_items:
-        - rh-rhui-tools
-
-    - name: Create NSS certificates for qpid
-      command: /usr/bin/nss-db-gen
-
+    - include: tasks/rhua_iso_install_software.yml
+      when: iso_path != ""
   handlers:
     - name: restart httpd
       action: service name=httpd state=restarted
 
-- name: Install Packages/Git Repos for CDS
+- name: Install Packages for CDS
   hosts: cds
   user: ec2-user
   sudo: yes
@@ -111,24 +77,11 @@
     - rhui_build_host: ec2-50-17-26-28.compute-1.amazonaws.com
 
   tasks:
+    - include: tasks/cds_repo_install_software.yml
+      when: iso_path == ""
 
-    - name: install rhui testing yum repo
-      command: wget -O /etc/yum.repos.d/testing_rpms_rhui.repo http://${rhui_build_host}/pub/testing_rpms_rhui.repo
-
-    - name: install pulp-cds
-      action: yum name=${item} state=latest
-      with_items:
-       - pulp-cds
-       - pulp-selinux-server
-       - grinder
-       - gofer
-       - gofer-package
-       - mod_wsgi
-       - python-gofer
-       - rh-rhui-tools-debug-script
-      notify: restart httpd
-
+    - include: tasks/cds_iso_install_software.yml
+      when: iso_path != ""
   handlers:
     - name: restart httpd
       action: service name=httpd state=restarted
-

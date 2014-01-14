@@ -20,8 +20,11 @@ if [ $(stat -c %a ${SSH_PRIV_KEY}) != 600 ]; then
 fi
 
 pushd .
+if [ ! -z "$1" ]; then
+  ISO_PATH=`realpath $1`
+fi
 cd provision
-time (./create_instances.sh && ./install_software.sh && ./setup_rhui.sh)
+time (./create_instances.sh && ./install_software.sh $ISO_PATH && ./setup_rhui.sh)
 popd
 echo ""
 echo ""

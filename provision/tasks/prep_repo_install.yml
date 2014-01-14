@@ -1,0 +1,11 @@
+- name: Ensure /git exists
+  file: dest=/git state=directory
+
+- name: Git checkout pulp 'rhui' branch
+  action: git repo=https://github.com/splice/pulp.git dest=/git/pulp version=rhui
+
+- name: Git checkout gofer 'rhui' branch
+  action: git repo=https://github.com/splice/gofer.git dest=/git/gofer version=rhui
+
+- name: Git checkout grinder 'rhui' branch
+  action: git repo=https://git.fedorahosted.org/git/grinder.git dest=/git/grinder version=rhui
