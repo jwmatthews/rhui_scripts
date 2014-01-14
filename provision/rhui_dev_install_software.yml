@@ -28,40 +28,40 @@
     - name: restart iptables
       action: service name=iptables state=restarted
 
-- name: Install Packages for RHUA
-  hosts: rhua
-  user: ec2-user
-  sudo: yes
-  gather_facts: true
-
-  vars:
-    - rhui_build_host: ec2-50-17-26-28.compute-1.amazonaws.com
-
-  tasks:
-    - include: tasks/rhua_repo_install_software.yml
-      when: iso_path == ""
-
-    - include: tasks/rhua_iso_install_software.yml
-      when: iso_path != ""
-  handlers:
-    - name: restart httpd
-      action: service name=httpd state=restarted
-
-- name: Install Packages for CDS
-  hosts: cds
-  user: ec2-user
-  sudo: yes
-  gather_facts: true
-
-  vars:
-    - rhui_build_host: ec2-50-17-26-28.compute-1.amazonaws.com
-
-  tasks:
-    - include: tasks/cds_repo_install_software.yml
-      when: iso_path == ""
-
-    - include: tasks/cds_iso_install_software.yml
-      when: iso_path != ""
-  handlers:
-    - name: restart httpd
-      action: service name=httpd state=restarted
+#- name: Install Packages for RHUA
+#  hosts: rhua
+#  user: ec2-user
+#  sudo: yes
+#  gather_facts: true
+#
+#  vars:
+#    - rhui_build_host: ec2-50-17-26-28.compute-1.amazonaws.com
+#
+#  tasks:
+#    - include: tasks/rhua_repo_install_software.yml
+#      when: iso_path == ""
+#
+#    - include: tasks/rhua_iso_install_software.yml
+#      when: iso_path != ""
+#  handlers:
+#    - name: restart httpd
+#      action: service name=httpd state=restarted
+#
+#- name: Install Packages for CDS
+#  hosts: cds
+#  user: ec2-user
+#  sudo: yes
+#  gather_facts: true
+#
+#  vars:
+#    - rhui_build_host: ec2-50-17-26-28.compute-1.amazonaws.com
+#
+#  tasks:
+#    - include: tasks/cds_repo_install_software.yml
+#      when: iso_path == ""
+#
+#    - include: tasks/cds_iso_install_software.yml
+#      when: iso_path != ""
+#  handlers:
+#    - name: restart httpd
+#      action: service name=httpd state=restarted
