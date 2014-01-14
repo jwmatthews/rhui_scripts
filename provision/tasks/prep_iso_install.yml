@@ -6,6 +6,3 @@
 
 - name: mount iso
   command: mount -o loop /root/rhui.iso /mnt/rhui
-
-- name: disable epel repo
-  command: sed -i s/enabled=1/enabled=0/g /etc/yum.repos.d/epel.repo

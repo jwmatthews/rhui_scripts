@@ -6,26 +6,6 @@
   gather_facts: true
 
   tasks:
-    - name: get epel-repo rpm RHEL6
-      get_url: dest=/tmp/epel-release.rpm  url=http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
-      when: ansible_os_family == 'RedHat' and ansible_lsb.major_release|int == 6
-
-    - name: install epel-repo rpm
-      action: yum pkg=/tmp/epel-release.rpm state=installed
-
-    - name: update firewall
-      action: copy src="files/${item}" dest="/${item}" owner=root group=root
-      with_items:
-        - etc/sysconfig/iptables
-      notify: restart iptables
-
-    - name: install extra rpms to make devel env nicer
-      action: yum name=$item state=present
-      with_items:
-        - vim-enhanced
-        - git
-        - tig
-
     - name: scp sample .rc files over to hosts to make editing easier for root
       action: copy src="files/${item}" dest="/root/.${item}" owner=root group=root
       with_items:
