@@ -1,0 +1,13 @@
+Before running:
+
+1) Ensure you have these environment variables set:
+     AWS_ACCESS_KEY_ID
+     AWS_SECRET_ACCESS_KEY
+2) You have the splice SSH key available at: ~/.ssh/splice_rsa
+3) Ensure you have python boto installed
+
+To run:
+./launch_stack.py --template simple_rhui_setup_with_ebs.template
+
+
+
