@@ -67,15 +67,15 @@
                 },
                 {
                   "DeviceName" : "/dev/sdm",
-                  "Ebs" : { "VolumeSize" : "50" }
+                  "Ebs" : { "VolumeSize" : "20" }
                 },
                 {
                   "DeviceName" : "/dev/sdn",
-                  "Ebs" : { "VolumeSize" : "50" }
+                  "Ebs" : { "VolumeSize" : "20" }
                 },
                 {
                   "DeviceName" : "/dev/sdp",
-                  "Ebs" : { "VolumeSize" : "100" }
+                  "Ebs" : { "VolumeSize" : "50" }
                 }
               ]
             }
@@ -92,14 +92,14 @@
                                     {
                                         "Ref": "OwnerName"
                                     },
-                                    "CDS1"
+                                    "CDS_01"
                                 ]
                             ]
                         }, 
                         "Key": "Name"
                     }, 
                     {
-                        "Value": "CDS1", 
+                        "Value": "CDS_01", 
                         "Key": "Role"
                     } 
                 ], 
@@ -128,15 +128,15 @@
                 },
                 {
                   "DeviceName" : "/dev/sdm",
-                  "Ebs" : { "VolumeSize" : "50" }
+                  "Ebs" : { "VolumeSize" : "20" }
                 },
                 {
                   "DeviceName" : "/dev/sdn",
-                  "Ebs" : { "VolumeSize" : "50" }
+                  "Ebs" : { "VolumeSize" : "20" }
                 },
                 {
                   "DeviceName" : "/dev/sdp",
-                  "Ebs" : { "VolumeSize" : "100" }
+                  "Ebs" : { "VolumeSize" : "50" }
                 }
               ]
             }
@@ -153,14 +153,14 @@
                                     {
                                         "Ref": "OwnerName"
                                     },
-                                    "CDS2"
+                                    "CDS_02"
                                 ]
                             ]
                         }, 
                         "Key": "Name"
                     }, 
                     {
-                        "Value": "CDS2", 
+                        "Value": "CDS_02", 
                         "Key": "Role"
                     } 
                 ], 
@@ -189,15 +189,15 @@
                 },
                 {
                   "DeviceName" : "/dev/sdm",
-                  "Ebs" : { "VolumeSize" : "50" }
+                  "Ebs" : { "VolumeSize" : "20" }
                 },
                 {
                   "DeviceName" : "/dev/sdn",
-                  "Ebs" : { "VolumeSize" : "50" }
+                  "Ebs" : { "VolumeSize" : "20" }
                 },
                 {
                   "DeviceName" : "/dev/sdp",
-                  "Ebs" : { "VolumeSize" : "100" }
+                  "Ebs" : { "VolumeSize" : "50" }
                 }
               ]
             }

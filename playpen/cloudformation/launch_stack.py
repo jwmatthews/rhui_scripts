@@ -68,6 +68,8 @@ def parse_args():
         default=10, help='stack creation timeout')
     parser.add_option('--ans_out_file', 
         default="provisioned_instances.ansible", help="Filename to store ansible ec2 inventory information representing provisioned instances")
+    parser.add_option('--bash_out_file', 
+        default="hostnames.env", help="Filename to write hostnames that have provisioned and their role.")
     parser.add_option('--yaml_out_file', 
         default="provisioned_stack.yaml", help="Filename to write YAML info about provisioned cloud formation stack.")
     parser.add_option('--instance_type',
@@ -158,6 +160,8 @@ def get_instance_details(instances):
         for k in keys:
             info[k] = getattr(inst, k)
         info["instance"] = inst
+        if not info["tags"].has_key("Role"):
+            info["tags"]["Role"] = "Unknown"
         details[info["public_dns_name"]] = info
     return details
 
@@ -192,11 +196,11 @@ def write_ansible_inventory(instance_details, out_file):
     for inst in instance_details.values():
         dns_name = inst["public_dns_name"]
         role = inst["tags"]["Role"]
-    #Note:
-    # The supplied cloud formation JSON file needs
-    # a tag of "Role" for each instance provisioned
-    data += "[%s]\n" % (role)
-    data += "%s\n" % (dns_name)
+        #Note:
+        # The supplied cloud formation JSON file needs
+        # a tag of "Role" for each instance provisioned
+        data += "[%s]\n" % (role)
+        data += "%s\n" % (dns_name)
 
     f = open(out_file, "w")
     try:
@@ -345,6 +349,10 @@ def setup_filesystems(inst_details, ssh_user, ssh_priv_key_path):
     # Will create a thread per instance so filesystem setup may happen in parallel
     # Steps are executed in parallel to minimize the impact of 
     #  mkfs commands which take several minutes per filesystem
+    #
+    # TODO:  Add ability to capture errors from a thread and quit execution of entire script.
+    #
+    start = time.time()
     threads = []
     for inst in inst_details.values():
         t = threading.Thread(target=setup_filesystem_on_host, args=(inst, ssh_user, ssh_priv_key_path))
@@ -352,6 +360,8 @@ def setup_filesystems(inst_details, ssh_user, ssh_priv_key_path):
         threads.append(t)
     for t in threads:
         t.join()
+    end = time.time()
+    logging.info("\nLVM filesystems were created on %s hosts in %s seconds" % (len(inst_details), end-start))
 
 if __name__ == "__main__":
     start = time.time()
@@ -359,6 +369,7 @@ if __name__ == "__main__":
     ans_out_file = opts.ans_out_file
     aws_access_key_id = opts.aws_access_key_id
     aws_secret_access_key = opts.aws_secret_access_key
+    bash_out_file = opts.bash_out_file
     cloudformfile = opts.template
     debug = opts.debug
     instance_type = opts.instance_type
@@ -396,8 +407,9 @@ if __name__ == "__main__":
     instances = get_instances(con_ec2, instance_ids)
     details = get_instance_details(instances)
     hostnames = [x["public_dns_name"] for x in details.values()]
-    #write_ansible_inventory(details, ans_out_file)
+    write_ansible_inventory(details, ans_out_file)
     write_yaml_conf(stack_id, details, yaml_out_file)
+    write_bash_env(stack_id, details, bash_out_file)
 
     logging.info("Will wait for SSH to come up for below instances:")
     for inst_details in details.values():
@@ -413,5 +425,9 @@ if __name__ == "__main__":
 
     logging.info("StackID: %s" % (stack_id))
     end = time.time()
+    for instance_details in details.values():
+        dns_name = instance_details["public_dns_name"]
+        role = instance_details["tags"]["Role"]
+        print "%s = %s" % (role, dns_name)
     logging.info("Completed creation of Cloud Formation Stack from: %s in %s seconds" % (cloudformfile, (end-start)))
 
