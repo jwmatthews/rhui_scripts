@@ -1,0 +1,67 @@
+---
+- name: Install Common Packages for both RHUA & CDS
+  hosts: RHUA:CDS_01:CDS_02
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  tasks:
+    - name: scp sample .rc files over to hosts to make editing easier for root
+      action: copy src="files/${item}" dest="/root/.${item}" owner=root group=root
+      with_items:
+        - bashrc
+        - vimrc
+
+    - name: scp sample .rc files over to hosts to make editing easier for ec2-user
+      action: copy src="files/${item}" dest="/home/ec2-user/.${item}" owner=ec2-user group=ec2-user
+      with_items:
+        - bashrc
+        - vimrc
+
+    - include: tasks/prep_repo_install.yml
+      when: iso_path == ""
+
+    - include: tasks/prep_iso_install.yml
+      when: iso_path != ""
+
+  handlers:
+    - name: restart iptables
+      action: service name=iptables state=restarted
+
+- name: Install Packages for RHUA
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  vars:
+    - rhui_build_host: ec2-50-17-26-28.compute-1.amazonaws.com
+
+  tasks:
+    - include: tasks/rhua_repo_install_software.yml
+      when: iso_path == ""
+
+    - include: tasks/rhua_iso_install_software.yml
+      when: iso_path != ""
+  handlers:
+    - name: restart httpd
+      action: service name=httpd state=restarted
+
+- name: Install Packages for CDS
+  hosts: CDS_01:CDS_02
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  vars:
+    - rhui_build_host: ec2-50-17-26-28.compute-1.amazonaws.com
+
+  tasks:
+    - include: tasks/cds_repo_install_software.yml
+      when: iso_path == ""
+
+    - include: tasks/cds_iso_install_software.yml
+      when: iso_path != ""
+  handlers:
+    - name: restart httpd
+      action: service name=httpd state=restarted

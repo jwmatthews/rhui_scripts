@@ -1,0 +1,16 @@
+- name: install pulp
+  action: shell cd /mnt/rhui && ./install_RHUA.sh
+  notify: restart httpd
+
+# Note mongodb requires a few minutes to preallocate it's db files
+# We are starting mongodb now so while other tasks run it's DB files will be preallocated
+- name: enable mongodb
+  action: service name=mongod state=started enabled=yes
+
+- name: install rhui-tools
+  action: yum name=${item} state=latest
+  with_items:
+   - rh-rhui-tools
+
+- name: Create NSS certificates for qpid
+  command: /usr/bin/nss-db-gen

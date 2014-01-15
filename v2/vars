@@ -1,0 +1,6 @@
+export SSH_USER="ec2-user"
+export SSH_PRIV_KEY="${HOME}/.ssh/splice_rsa"
+export HOSTNAMES_ENV=`pwd`/hostnames.env
+export ANSIBLE_INVENTORY=`pwd`/provisioned_instances.ansible
+export ANSIBLE_HOST_KEY_CHECKING=False
+export LOG_DIR=`pwd`/logs

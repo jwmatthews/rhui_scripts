@@ -1,0 +1,30 @@
+- name: install rhui testing yum repo
+  command: wget -O /etc/yum.repos.d/testing_rpms_rhui.repo http://${rhui_build_host}/pub/testing_rpms_rhui.repo
+
+- name: install pulp
+  action: yum name=${item} state=latest disablerepo=epel
+  with_items:
+   - pulp
+   - qpid-cpp-server-ssl
+   - policycoreutils-python
+   - pulp-admin
+   - pulp-selinux-server
+   - pulp-consumer
+   - mod_wsgi
+   - gofer
+   - gofer-package
+   - rh-rhua-selinux-policy
+  notify: restart httpd
+
+# Note mongodb requires a few minutes to preallocate it's db files
+# We are starting mongodb now so while other tasks run it's DB files will be preallocated
+- name: enable mongodb
+  action: service name=mongod state=started enabled=yes
+
+- name: install rhui-tools
+  action: yum name=${item} state=latest
+  with_items:
+   - rh-rhui-tools
+
+- name: Create NSS certificates for qpid
+  command: /usr/bin/nss-db-gen

@@ -1,0 +1,31 @@
+- name: get epel-repo rpm RHEL6
+  get_url: dest=/tmp/epel-release.rpm  url=http://download.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
+  when: ansible_os_family == 'RedHat' and ansible_lsb.major_release|int == 6
+
+- name: install epel-repo rpm
+  action: yum pkg=/tmp/epel-release.rpm state=installed
+
+- name: update firewall
+  action: copy src="files/${item}" dest="/${item}" owner=root group=root
+  with_items:
+    - etc/sysconfig/iptables
+  notify: restart iptables
+
+- name: install extra rpms to make devel env nicer
+  action: yum name=$item state=present
+  with_items:
+    - vim-enhanced
+    - git
+    - tig
+
+- name: Ensure /git exists
+  file: dest=/git state=directory
+
+- name: Git checkout pulp 'rhui' branch
+  action: git repo=https://github.com/splice/pulp.git dest=/git/pulp version=rhui
+
+- name: Git checkout gofer 'rhui' branch
+  action: git repo=https://github.com/splice/gofer.git dest=/git/gofer version=rhui
+
+- name: Git checkout grinder 'rhui' branch
+  action: git repo=https://git.fedorahosted.org/git/grinder.git dest=/git/grinder version=rhui
