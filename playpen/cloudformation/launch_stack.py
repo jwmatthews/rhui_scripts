@@ -297,6 +297,19 @@ def _create_log_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
     cmd = "sudo mount %s" % (mountpoint)
     run_cmd(ssh_client, cmd)
 
+    # 'service httpd restart' was failing with: 
+    #  Starting httpd: (13)Permission denied: httpd: could not open error log file /etc/httpd/logs/error_log.
+    #  Unable to open logs
+    #
+    # Cause was that the new /var/log mountpoint we created defaults to 'file_t'
+    # httpd selinux policy is unable to read 'file_t', we need to change to 'var_t'
+    #
+    cmd = "sudo semanage fcontext -a -t var_t %s" % (mountpoint)
+    run_cmd(ssh_client, cmd)
+
+    cmd = "sudo restorecon %s" % (mountpoint)
+    run_cmd(ssh_client, cmd)
+
 def _create_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
     cmd = "sudo pvcreate %s" % (blockdevice)
     run_cmd(ssh_client, cmd)
