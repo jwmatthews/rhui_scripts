@@ -1,0 +1,5 @@
+Below is an example of usage to create a new cloud formation stack then install RHUI.
+Note:  This is not setting up RHUI, only doing the install.
+
+
+./launch.sh ./RHEL-6.4-RHUI-2.1.3-20131212.0-Server-x86_64-DVD1.iso
