@@ -34,6 +34,7 @@ fi
 
 ./launch_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY}
 ./install_software.sh ${ISO_PATH}
+./setup_rhui.sh
 
 #cd provision
 #time (./create_instances.sh && ./install_software.sh $ISO_PATH && ./setup_rhui.sh)

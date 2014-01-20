@@ -1,0 +1,7 @@
+logs
+ent_cert.pem
+*.iso
+provisioned_instances.ansible
+provisioned_stack.yaml
+hostnames.env
+

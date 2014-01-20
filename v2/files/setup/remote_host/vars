@@ -1,0 +1,14 @@
+##
+# Note:  you must download a valid entitlement certificate from Red Hat
+# Do _not_ check in the entitlement certificate to git.
+###
+
+# If you change ENT_CERT also update provision/rhui_dev_setup.yml
+#
+ENT_CERT="ent_cert.pem"
+REDHAT_CA_CERT="./redhat-uep.pem"
+
+RHUI_USER="admin"
+RHUI_PASS="admin"
+
+RHUI_CERTS_DIR="/home/ec2-user/rhui-certs/certs"

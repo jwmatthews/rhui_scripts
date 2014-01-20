@@ -4,3 +4,4 @@ export HOSTNAMES_ENV=`pwd`/hostnames.env
 export ANSIBLE_INVENTORY=`pwd`/provisioned_instances.ansible
 export ANSIBLE_HOST_KEY_CHECKING=False
 export LOG_DIR=`pwd`/logs
+export GEN_CONFIG_RPM_DIR="`pwd`/generated_rpms"
