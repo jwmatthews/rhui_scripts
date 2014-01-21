@@ -1,18 +1,12 @@
 #!/bin/sh
-
 source ./vars
 CLOUD_FORMATION_TEMPLATE=./rhui_cloud_formation.template
 
-#INSTALL_DIR=./install
-#source ${INSTALL_DIR}/vars
-#if [ ! -f ${INSTALL_DIR}/${ENT_CERT} ]; then
-#  echo "Missing a required entitlement certificate: expected it to be at '${INSTALL_DIR}/${ENT_CERT}'"
-#  echo "Visit access.redhat.com and download a valid certificate and save it to: '${INSTALL_DIR}/${ENT_CERT}'"
-#  exit 1
-#fi
-
-if [ ! -d ${LOG_DIR} ]; then
-  mkdir ${LOG_DIR}
+ENT_CERT="./ent_cert.pem"
+if [ ! -f ${ENT_CERT} ]; then
+  echo "Missing a required entitlement certificate: expected it to be at '${ENT_CERT}'"
+  echo "Visit access.redhat.com and download a valid certificate and save it to: '${ENT_CERT}'"
+  exit 1
 fi
 
 if [ ! -f ${SSH_PRIV_KEY} ]; then
@@ -27,21 +21,34 @@ if [ $(stat -c %a ${SSH_PRIV_KEY}) != 600 ]; then
   exit 1
 fi
 
+if [ ! -d ${LOG_DIR} ]; then
+  mkdir ${LOG_DIR}
+fi
+
 pushd .
 if [ ! -z "$1" ]; then
   ISO_PATH=`realpath $1`
 fi
 
 ./launch_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY}
-./install_software.sh ${ISO_PATH}
-./setup_rhui.sh
+if [ "$?" -ne "0" ]; then
+	echo "Failed to run launch_stack.py"
+	exit 1
+fi
 
-#cd provision
-#time (./create_instances.sh && ./install_software.sh $ISO_PATH && ./setup_rhui.sh)
-#popd
-#echo ""
-#echo ""
-#echo "RHUI has been setup on the below hosts"
-#echo ""
-#cat hostnames.env
+./install_software.sh ${ISO_PATH}
+if [ "$?" -ne "0" ]; then
+	echo "Failed to run install_software.sh"
+	exit 1
+fi
+
+./setup_rhui.sh
+if [ "$?" -ne "0" ]; then
+	echo "Failed to run setup_rhui.sh"
+	exit 1
+fi
+
+echo "RHUI has been setup on the below hosts"
+echo ""
+cat hostnames.env
 
