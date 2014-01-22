@@ -5,12 +5,6 @@
 - name: install epel-repo rpm
   action: yum pkg=/tmp/epel-release.rpm state=installed
 
-- name: update firewall
-  action: copy src="files/${item}" dest="/${item}" owner=root group=root
-  with_items:
-    - etc/sysconfig/iptables
-  notify: restart iptables
-
 - name: install extra rpms to make devel env nicer
   action: yum name=$item state=present
   with_items:

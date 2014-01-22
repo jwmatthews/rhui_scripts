@@ -1,4 +1,22 @@
 ---
+
+- name: Adjust firewall
+  hosts: RHUA:CDS_01:CDS_02
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  tasks:
+    - name: update firewall
+      action: copy src="files/${item}" dest="/${item}" owner=root group=root
+      with_items:
+      - etc/sysconfig/iptables
+      notify: restart iptables
+      
+  handlers:
+    - name: restart iptables
+      action: service name=iptables state=restarted
+
 ###
 # TODO
 # I am replicating a task 3 times because I don't know how to tell while task runs what host it is executing on

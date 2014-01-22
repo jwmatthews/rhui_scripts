@@ -24,10 +24,6 @@
     - include: tasks/prep_iso_install.yml
       when: iso_path != ""
 
-  handlers:
-    - name: restart iptables
-      action: service name=iptables state=restarted
-
 - name: Install Packages for RHUA
   hosts: RHUA
   user: ec2-user
