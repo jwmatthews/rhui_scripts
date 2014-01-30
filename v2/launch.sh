@@ -40,8 +40,6 @@ echo " -h      Help"
 exit 2
 }
 
-#PACKAGES=","
-
 while getopts ":p:,:i:,:h" opt; do
     case $opt in
         h)     usage;;
@@ -57,7 +55,6 @@ if [ "$?" -ne "0" ]; then
 	exit 1
 fi
 
-#./install_software.py ${ISO_PATH} --packages $PACKAGES
 ./install_software.sh -i ${ISO_PATH} -p ${PACKAGES}
 if [ "$?" -ne "0" ]; then
 	echo "Failed to run install_software.sh"
