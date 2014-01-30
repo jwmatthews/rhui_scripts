@@ -51,11 +51,11 @@ while getopts ":p:,:i:,:h" opt; do
     esac
 done
 
-#./launch_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY}
-#if [ "$?" -ne "0" ]; then
-#	echo "Failed to run launch_stack.py"
-#	exit 1
-#fi
+./launch_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY}
+if [ "$?" -ne "0" ]; then
+	echo "Failed to run launch_stack.py"
+	exit 1
+fi
 
 #./install_software.py ${ISO_PATH} --packages $PACKAGES
 ./install_software.sh -i ${ISO_PATH} -p ${PACKAGES}
@@ -64,11 +64,11 @@ if [ "$?" -ne "0" ]; then
 	exit 1
 fi
 
-#./setup_rhui.sh
-#if [ "$?" -ne "0" ]; then
-#	echo "Failed to run setup_rhui.sh"
-#	exit 1
-#fi
+./setup_rhui.sh
+if [ "$?" -ne "0" ]; then
+	echo "Failed to run setup_rhui.sh"
+	exit 1
+fi
 
 echo "RHUI has been setup on the below hosts"
 echo ""
