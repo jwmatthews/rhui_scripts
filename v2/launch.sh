@@ -26,27 +26,49 @@ if [ ! -d ${LOG_DIR} ]; then
 fi
 
 pushd .
-if [ ! -z "$1" ]; then
-  ISO_PATH=`realpath $1`
-fi
+#if [ ! -z "$1" ]; then
+#  ISO_PATH=`realpath $1`
+#fi
 
-./launch_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY}
-if [ "$?" -ne "0" ]; then
-	echo "Failed to run launch_stack.py"
-	exit 1
-fi
+usage() {
+echo "$0 [options] ISO_FILE (optional) ..."
+echo
+echo "Options"
+echo " -p      Optional packages to install on RHUA/CDS (default: $PACKAGES)"
+echo " -i      Install RHUA/CDS software from ISO (default: $ISO_PATH)"
+echo " -h      Help"
+exit 2
+}
 
-./install_software.sh ${ISO_PATH}
+#PACKAGES=","
+
+while getopts ":p:,:i:,:h" opt; do
+    case $opt in
+        h)     usage;;
+        p)     PACKAGES=$OPTARG;;
+        i)     ISO_PATH=$OPTARG;;
+        \?)    break;; # end of options
+    esac
+done
+
+#./launch_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY}
+#if [ "$?" -ne "0" ]; then
+#	echo "Failed to run launch_stack.py"
+#	exit 1
+#fi
+
+#./install_software.py ${ISO_PATH} --packages $PACKAGES
+./install_software.sh -i ${ISO_PATH} -p ${PACKAGES}
 if [ "$?" -ne "0" ]; then
 	echo "Failed to run install_software.sh"
 	exit 1
 fi
 
-./setup_rhui.sh
-if [ "$?" -ne "0" ]; then
-	echo "Failed to run setup_rhui.sh"
-	exit 1
-fi
+#./setup_rhui.sh
+#if [ "$?" -ne "0" ]; then
+#	echo "Failed to run setup_rhui.sh"
+#	exit 1
+#fi
 
 echo "RHUI has been setup on the below hosts"
 echo ""
