@@ -1,6 +1,6 @@
 ---
 - name: Install Optional Packages for RHUA/CDS
-  hosts: RHUA:CDS_01:CDS02
+  hosts: RHUA:CDS_01:CDS_02
   user: ec2-user
   sudo: yes
   gather_facts: true
