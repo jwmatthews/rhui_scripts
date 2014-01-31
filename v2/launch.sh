@@ -36,22 +36,20 @@ echo
 echo "Options"
 echo " -p      Optional packages to install on RHUA/CDS (default: $PACKAGES)"
 echo " -i      Install RHUA/CDS software from ISO (default: $ISO_PATH)"
+echo " -d      Directory containing existing certificates to user for this install"
 echo " -h      Help"
 exit 2
 }
 
-while getopts ":p:,:i:,:h" opt; do
+while getopts ":p:,:i:,:d:,:h" opt; do
     case $opt in
         h)     usage;;
         p)     PACKAGES=$OPTARG;;
         i)     ISO_PATH=$OPTARG;;
+        d)     EXISTING_CERT_DIR=$OPTARG;;
         \?)    break;; # end of options
     esac
 done
-
-if [ ! -z "$2" ]; then
-  EXISTING_CERT_DIR=`realpath $2`
-fi
 
 ./launch_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY}
 if [ "$?" -ne "0" ]; then
