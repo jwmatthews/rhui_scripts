@@ -1,0 +1,11 @@
+# This is intended to accept existing HTTP SSL certificates and copy them to the RHUA
+# The RHUA will then be setup with the passed in certificates.
+# We will use this task for production setups for EC-2
+
+######
+# Note:  	The referenced directory will also contain an 'answers' file which gets passed to rhui-installer
+# 			to tell rhui-installer what cert matches to what RHUA/CDS1/CDS2
+######
+
+- name: scp existing HTTP SSL certificates to RHUA
+  action: copy src="{{existing_cert_dir}}/rhui-certs/" dest="/home/ec2-user/rhui-certs/" owner=ec2-user mode=0775

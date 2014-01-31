@@ -49,6 +49,10 @@ while getopts ":p:,:i:,:h" opt; do
     esac
 done
 
+if [ ! -z "$2" ]; then
+  EXISTING_CERT_DIR=`realpath $2`
+fi
+
 ./launch_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY}
 if [ "$?" -ne "0" ]; then
 	echo "Failed to run launch_stack.py"
@@ -61,7 +65,7 @@ if [ "$?" -ne "0" ]; then
 	exit 1
 fi
 
-./setup_rhui.sh
+./setup_rhui.sh ${EXISTING_CERT_DIR}
 if [ "$?" -ne "0" ]; then
 	echo "Failed to run setup_rhui.sh"
 	exit 1

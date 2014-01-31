@@ -1,0 +1,15 @@
+# This task is intended to generate new certificates on the RHUA
+# We will _not_ use this task for production, this task is to make test setups easier for development testing
+#
+- name: scp setup scripts to RHUA
+  action: copy src="./files/setup/remote_host/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+  with_items:
+    - gen_certs.sh
+    - redhat-uep.pem
+##
+# TODO:  Check if 'redhat-uep.pem' is needed.  This may no longer be required and we can remove and remove from the vars files 
+##
+
+- name: Generate X509 certificates
+  command: sudo /home/ec2-user/gen_certs.sh chdir=/home/ec2-user
+
