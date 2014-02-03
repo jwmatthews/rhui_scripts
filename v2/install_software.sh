@@ -30,7 +30,7 @@ while getopts ":p:,:i:,:h" opt; do
 done
 
 if [ ! -z "$ISO_PATH" ]; then
-  ISO_PATH=`realpath $ISO_PATH`
+  ISO_PATH=`readlink -f $ISO_PATH`
   ISO_FILENAME=`echo $ISO_PATH | rev | cut -f1 -d'/' | rev`
 fi
 
@@ -40,7 +40,7 @@ if [ ! -z "$PACKAGES" ]; then
     IFS=',' read -a array <<< "$PACKAGES"
     for element in "${array[@]}"
     do
-        PKG=`realpath $element`
+        PKG=`readlink -f $element`
         PKG_NAME=`echo $PKG | rev | cut -f1 -d'/' | rev`
         ansible-playbook install_optional_pkg.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${SSH_PRIV_KEY} --extra-vars "pkg=$PKG pkg_name=$PKG_NAME" | tee ${LOG_DIR}/install_optional_pkg.log
     done
