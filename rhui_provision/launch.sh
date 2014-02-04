@@ -51,17 +51,17 @@ while getopts ":p:,:i:,:d:,:h" opt; do
     esac
 done
 
-./launch_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY}
-if [ "$?" -ne "0" ]; then
-	echo "Failed to run launch_stack.py"
-	exit 1
-fi
+#./launch_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY}
+#if [ "$?" -ne "0" ]; then
+#	echo "Failed to run launch_stack.py"
+#	exit 1
+#fi
 
-./install_software.sh -i ${ISO_PATH} -p ${PACKAGES}
-if [ "$?" -ne "0" ]; then
-	echo "Failed to run install_software.sh"
-	exit 1
-fi
+#./install_software.sh -i ${ISO_PATH} -p ${PACKAGES}
+#if [ "$?" -ne "0" ]; then
+#	echo "Failed to run install_software.sh"
+#	exit 1
+#fi
 
 ./setup_rhui.sh ${EXISTING_CERT_DIR}
 if [ "$?" -ne "0" ]; then
