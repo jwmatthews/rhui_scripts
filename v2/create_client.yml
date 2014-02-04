@@ -1,0 +1,66 @@
+---
+- 
+  hosts: localhost
+  connection: local
+  user: root
+  gather_facts: false
+
+  tags:
+      - stage
+
+  vars:
+      keypair: splice
+      instance_type: m1.large
+      client_security_group: default
+      #ami: ami-f6f16b9f  
+      ami: ami-d94bdcb0
+      region: us-east-1
+
+  tasks:
+    - local_action: shell id -u -n
+      register: user_name
+
+    - local_action: shell date +"%Y-%m-%d %r"
+      register: datestamp
+
+    - name: Launch RHUI Client instance
+      local_action:
+        module: ec2
+        keypair: ${keypair}
+        group: ${client_security_group}
+        instance_type: ${instance_type}
+        image: ${ami}
+        region: ${region}
+        wait: yes
+        count: 1
+        instance_tags: '{"Name": "{{ user_name.stdout }} RHUI client {{ datestamp.stdout }}"}'
+      register: rhui_client
+
+# Requires variables to be passed on command line
+#  hostnames_env
+#  desired_hostnames_env
+
+- name: Adjust /etc/hosts on client
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+  vars:
+      setup_dir: "./files/setup/remote_host"
+
+  tasks:
+
+    - name: scp adjust_hosts.sh script to each instance
+      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+      with_items:
+        - adjust_hosts.sh
+
+    - name: scp ec2 hostnames.env script to each instance
+      action: copy src="{{hostnames_env}}" dest="/home/ec2-user" owner=ec2-user mode=0775
+
+    - name: scp desired_hostnames.env script to each instance
+      action: copy src="{{desired_hostnames_env}}" dest="/home/ec2-user" owner=ec2-user mode=0775
+
+    - name: Run adjust_hosts.sh on each instance
+      command: sudo ./adjust_hosts.sh chdir=/home/ec2-user
+

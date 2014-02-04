@@ -17,4 +17,4 @@ if [ ! -z "$1" ]; then
 fi
 
 
-ansible-playbook setup_rhui.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${SSH_PRIV_KEY} --extra-vars "existing_cert_dir=${EXISTING_CERT_DIR}" | tee ${LOG_DIR}/rhui_dev_setup.log
+ansible-playbook setup_rhui.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${SSH_PRIV_KEY} --extra-vars "existing_cert_dir=${EXISTING_CERT_DIR}" | tee ${LOG_DIR}/setup_rhui.log
