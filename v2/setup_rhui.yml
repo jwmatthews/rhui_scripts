@@ -44,13 +44,13 @@
       with_items:
         - hostnames.env
 
-    - name: scp desired_hostnames.env script to each instance
-      action: copy src="{{item}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+    - name: scp sample desired_hostnames.env script to each instance
+      action: copy src="{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
       with_items:
         - desired_hostnames.env
       when: existing_cert_dir == ""
 
-    - name: scp desired_hostnames.env script to each instance
+    - name: scp specific desired_hostnames.env script to each instance
       action: copy src="{{item}}" dest="/home/ec2-user/" owner=ec2-user mode=0775
       with_items:
         - "{{existing_cert_dir}}/desired_hostnames.env"
@@ -79,13 +79,13 @@
       with_items:
         - hostnames.env
 
-    - name: scp desired_hostnames.env script to each instance
+    - name: scp sample desired_hostnames.env script to each instance
       action: copy src="{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
       with_items:
         - desired_hostnames.env
       when: existing_cert_dir == ""
 
-    - name: scp desired_hostnames.env script to each instance
+    - name: scp specific desired_hostnames.env script to each instance
       action: copy src="{{item}}" dest="/home/ec2-user/" owner=ec2-user mode=0775
       with_items:
         - "{{existing_cert_dir}}/desired_hostnames.env"
@@ -114,13 +114,13 @@
       with_items:
         - hostnames.env
 
-    - name: scp desired_hostnames.env script to each instance
+    - name: scp sample desired_hostnames.env script to each instance
       action: copy src="{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
       with_items:
         - desired_hostnames.env
       when: existing_cert_dir == ""
 
-    - name: scp desired_hostnames.env script to each instance
+    - name: scp specific desired_hostnames.env script to each instance
       action: copy src="{{item}}" dest="/home/ec2-user/" owner=ec2-user mode=0775
       with_items:
         - "{{existing_cert_dir}}/desired_hostnames.env"
