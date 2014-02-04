@@ -1,5 +1,5 @@
 #!/bin/bash
-cat <<EOQ | rhui-manager
+cat <<EOQ | rhui-manager --username admin --password admin
 r
 c
 rhui-client-config-rhel-server-6-i386-jbeap-5
@@ -15,7 +15,7 @@ y
 q
 EOQ
 
-cat <<EOQ | rhui-manager
+cat <<EOQ | rhui-manager --username admin --password admin
 r
 c
 rhui-client-config-rhel-server-6-x86_64-jbeap-5
@@ -31,7 +31,7 @@ y
 q
 EOQ
 
-cat <<EOQ | rhui-manager
+cat <<EOQ | rhui-manager --username admin --password admin
 r
 c
 rhui-client-config-rhel-server-6-i386-jbews-1
@@ -47,7 +47,7 @@ y
 q
 EOQ
 
-cat <<EOQ | rhui-manager
+cat <<EOQ | rhui-manager --username admin --password admin
 r
 c
 rhui-client-config-rhel-server-6-x86_64-jbews-1
@@ -63,7 +63,7 @@ y
 q
 EOQ
 
-cat <<EOQ | rhui-manager
+cat <<EOQ | rhui-manager --username admin --password admin
 r
 c
 rhui-client-config-rhel-server-6-i386-jbews-2
@@ -79,7 +79,7 @@ y
 q
 EOQ
 
-cat <<EOQ | rhui-manager
+cat <<EOQ | rhui-manager --username admin --password admin
 r
 c
 rhui-client-config-rhel-server-6-x86_64-jbews-2

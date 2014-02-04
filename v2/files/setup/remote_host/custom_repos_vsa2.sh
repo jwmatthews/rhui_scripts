@@ -1,5 +1,5 @@
 #!/bin/bash
-cat <<EOQ | rhui-manager
+cat <<EOQ | rhui-manager --username admin --password admin
 r
 c
 rhui-client-config-rhel-beta-server-6-vsa2
