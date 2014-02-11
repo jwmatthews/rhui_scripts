@@ -10,11 +10,31 @@ if [ ! -d ${LOG_DIR} ]; then
   mkdir ${LOG_DIR}
 fi
 
-EXISTING_CERT_DIR=""
-if [ ! -z "$1" ]; then
-  EXISTING_CERT_DIR=`readlink -f $1`
+usage() {
+echo "Options"
+echo " -d      Directory containing existing certificates to user for this install"
+echo " -r      RH Repo Data file"
+echo " -h      Help"
+exit 2
+}
+
+while getopts ":d:,:r:,:h" opt; do
+    case $opt in
+        h)     usage;;
+        d)     EXISTING_CERT_DIR=$OPTARG;;
+        r)     REPO_DATA_FILE=$OPTARG;;
+        \?)    break;; # end of options
+    esac
+done
+
+if [ ! -z "$EXISTING_CERT_DIR" ]; then
+  EXISTING_CERT_DIR=`readlink -f $EXISTING_CERT_DIR`
   echo "Will provision RHUI setup using information from: ${EXISTING_CERT_DIR}"
 fi
 
+if [ ! -z "$REPO_DATA_FILE" ]; then
+  REPO_DATA_FILE=`readlink -f $REPO_DATA_FILE`
+  REPO_DATA_FILENAME=`echo $REPO_DATA_FILE | rev | cut -f1 -d'/' | rev`
+fi
 
-ansible-playbook setup_rhui.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${SSH_PRIV_KEY} --extra-vars "existing_cert_dir=${EXISTING_CERT_DIR}" | tee ${LOG_DIR}/setup_rhui.log
+ansible-playbook setup_rhui.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${SSH_PRIV_KEY} --extra-vars "existing_cert_dir=${EXISTING_CERT_DIR} rh_repo_data=${REPO_DATA_FILE} rh_repo_data_filename=${REPO_DATA_FILENAME}" | tee ${LOG_DIR}/setup_rhui.log

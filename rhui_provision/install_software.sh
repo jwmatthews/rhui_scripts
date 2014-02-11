@@ -11,8 +11,6 @@ if [ ! -d ${LOG_DIR} ]; then
 fi
 
 usage() {
-echo "$0 [options] ISO_FILE (optional) ..."
-echo
 echo "Options"
 echo " -p      Optional packages to install on RHUA/CDS (default: $PACKAGES)"
 echo " -i      Install RHUA/CDS software from ISO (default: $ISO_PATH)"

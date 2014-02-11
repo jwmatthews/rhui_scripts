@@ -26,9 +26,6 @@ if [ ! -d ${LOG_DIR} ]; then
 fi
 
 pushd .
-#if [ ! -z "$1" ]; then
-#  ISO_PATH=`realpath $1`
-#fi
 
 usage() {
 echo "$0 [options] ISO_FILE (optional) ..."
@@ -37,16 +34,18 @@ echo "Options"
 echo " -p      Optional packages to install on RHUA/CDS (default: $PACKAGES)"
 echo " -i      Install RHUA/CDS software from ISO (default: $ISO_PATH)"
 echo " -d      Directory containing existing certificates to user for this install"
+echo " -r      RH Repo Data file"
 echo " -h      Help"
 exit 2
 }
 
-while getopts ":p:,:i:,:d:,:h" opt; do
+while getopts ":p:,:i:,:d:,:r:,:h" opt; do
     case $opt in
         h)     usage;;
         p)     PACKAGES=$OPTARG;;
         i)     ISO_PATH=$OPTARG;;
         d)     EXISTING_CERT_DIR=$OPTARG;;
+        r)     REPO_DATA_FILE=$OPTARG;;
         \?)    break;; # end of options
     esac
 done
@@ -57,13 +56,33 @@ if [ "$?" -ne "0" ]; then
 	exit 1
 fi
 
-./install_software.sh -i ${ISO_PATH} -p ${PACKAGES}
+### Install Software Block ###
+if [ ! -z "$ISO_PATH" ] && [ ! -z "$PACKAGES" ]; then
+  ./install_software.sh -i ${ISO_PATH} -p ${PACKAGES}
+elif [ ! -z "$ISO_PATH" ]; then
+  ./install_software.sh -i ${ISO_PATH}
+elif [ ! -z "$PACKAGES" ]; then
+  ./install_software.sh -p ${PACKAGES}
+else
+  ./install_software.sh
+fi
+
 if [ "$?" -ne "0" ]; then
 	echo "Failed to run install_software.sh"
 	exit 1
 fi
 
-./setup_rhui.sh ${EXISTING_CERT_DIR}
+### Setup RHUI Block ###
+if [ ! -z "$EXISTING_CERT_DIR" ] && [ ! -z "$REPO_DATA_FILE" ]; then
+  ./setup_rhui.sh -d ${EXISTING_CERT_DIR} -r ${REPO_DATA_FILE}
+elif [ ! -z "$EXISTING_CERT_DIR" ]; then
+  ./setup_rhui.sh -d ${EXISTING_CERT_DIR}
+elif [ ! -z "$REPO_DATA_FILE" ]; then
+  ./setup_rhui.sh -r ${REPO_DATA_FILE}
+else
+  ./setup_rhui.sh
+fi
+
 if [ "$?" -ne "0" ]; then
 	echo "Failed to run setup_rhui.sh"
 	exit 1

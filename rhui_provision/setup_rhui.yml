@@ -305,7 +305,7 @@
         - custom_repos.sh
         - custom_repos_vsa2.sh
 
-- name: Associate Repos to CDSes
+- name: Associate all custom repos to CDS
   hosts: RHUA
   user: ec2-user
   sudo: yes
@@ -314,15 +314,60 @@
     setup_dir: "./files/setup/remote_host"
   
   tasks:
-    - name: scp script to associate custom repos
+    - name: scp script to create custom repos
       action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
       with_items:
         - add_repos_to_cds.sh
 
-    - name: associate custom repos to cds
+    - name: create custom repos
       action: shell sudo ./{{item}}
       with_items:
         - add_repos_to_cds.sh
+
+- name: Add RH repos
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+
+  vars:
+    setup_dir: "./files/setup/remote_host"
+  
+  tasks:
+    - name: scp script to add RH repo
+      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
+      with_items:
+        - add_rh_repos.py
+
+    - name: scp data file
+      action: copy src="${rh_repo_data}" dest="/home/ec2-user/" owner=ec2-user group=ec2-user
+      when: rh_repo_data != ""
+
+    - name: add RH repo
+      action: shell sudo python {{item}} -j ${rh_repo_data_filename}
+      with_items:
+        - add_rh_repos.py
+      when: rh_repo_data != ""
+
+- name: Sync RHUA repos
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+
+  vars:
+    setup_dir: "./files/setup/remote_host"
+  
+  tasks:
+    - name: scp script to sync repos
+      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
+      with_items:
+        - sync_all_repos.sh
+
+    - name: sync all repos
+      action: shell sudo ./{{item}}
+      with_items:
+        - sync_all_repos.sh
 
 - name: Sync CDSes
   hosts: RHUA
