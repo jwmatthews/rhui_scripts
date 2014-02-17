@@ -1,8 +1,8 @@
 - name: install rhui testing yum repo
-  command: wget -O /etc/yum.repos.d/testing_rpms_rhui.repo http://${rhui_build_host}/pub/testing_rpms_rhui.repo
+  command: wget -O /etc/yum.repos.d/testing_rpms_rhui.repo http://{{rhui_build_host}}/pub/testing_rpms_rhui.repo
 
 - name: install pulp-cds
-  action: yum name=${item} state=latest
+  action: yum name={{item}} state=latest
   with_items:
    - pulp-cds
    - pulp-selinux-server

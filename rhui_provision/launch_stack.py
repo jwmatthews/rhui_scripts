@@ -25,12 +25,16 @@ from boto import regioninfo
 from boto import ec2
 from boto.manage.cmdshell import sshclient_from_instance
 
-def read_env(var):
-    return os.environ[var]
+def read_env(var, default_value=None):
+    if os.environ.has_key(var):
+        return os.environ[var]
+    else:
+        return default_value
 
 DEFAULT_AWS_ACCESS_KEY_ID=read_env("AWS_ACCESS_KEY_ID")
 DEFAULT_AWS_SECRET_ACCESS_KEY=read_env("AWS_SECRET_ACCESS_KEY")
 DEFAULT_INSTANCE_TYPE="m1.large"
+DEFAULT_REGION=read_env("REGION", "us-east-1")
 DEFAULT_SSH_USER="ec2-user"
 DEFAULT_SSH_KEY_NAME="splice"
 DEFAULT_SSH_PRIV_KEY_PATH=os.path.join(read_env("HOME"), ".ssh/splice_rsa")
@@ -63,9 +67,9 @@ def parse_args():
     parser.add_option('--aws_secret_access_key',
         default=DEFAULT_AWS_SECRET_ACCESS_KEY, help='AWS Secret Access Key, defaults to reading environment variable AWS_SECRET_ACCESS_KEY')
     parser.add_option('--region',
-        default="us-east-1", help='use specified region')
+        default=DEFAULT_REGION, help='use specified region')
     parser.add_option('--timeout', type=int,
-        default=10, help='stack creation timeout')
+        default=30, help='stack creation timeout')
     parser.add_option('--ans_out_file', 
         default="provisioned_instances.ansible", help="Filename to store ansible ec2 inventory information representing provisioned instances")
     parser.add_option('--bash_out_file', 
@@ -421,7 +425,7 @@ if __name__ == "__main__":
     details = get_instance_details(instances)
     hostnames = [x["public_dns_name"] for x in details.values()]
     write_ansible_inventory(details, ans_out_file)
-    write_yaml_conf(stack_id, details, yaml_out_file)
+    #write_yaml_conf(stack_id, details, yaml_out_file)
     write_bash_env(stack_id, details, bash_out_file)
 
     logging.info("Will wait for SSH to come up for below instances:")
@@ -443,4 +447,6 @@ if __name__ == "__main__":
         role = instance_details["tags"]["Role"]
         print "%s = %s" % (role, dns_name)
     logging.info("Completed creation of Cloud Formation Stack from: %s in %s seconds" % (cloudformfile, (end-start)))
+    logging.info("Ansible inventory file written to: %s" % (ans_out_file))
+    logging.info("Bash hostnames.env file written to: %s" % (bash_out_file))
 

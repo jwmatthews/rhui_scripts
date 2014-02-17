@@ -1,7 +1,26 @@
-export SSH_USER="ec2-user"
-export SSH_PRIV_KEY="${HOME}/.ssh/splice_rsa"
-export HOSTNAMES_ENV=`pwd`/hostnames.env
-export ANSIBLE_INVENTORY=`pwd`/provisioned_instances.ansible
-export ANSIBLE_HOST_KEY_CHECKING=False
-export LOG_DIR=`pwd`/logs
-export GEN_CONFIG_RPM_DIR="`pwd`/generated_rpms"
+: ${SSH_USER:="ec2-user"}
+export SSH_USER
+
+: ${SSH_PRIV_KEY:=$HOME/.ssh/splice_rsa}
+export SSH_PRIV_KEY
+
+: ${HOSTNAMES_ENV:=`pwd`/hostnames.env}
+export HOSTNAMES_ENV
+
+: ${ANSIBLE_INVENTORY:=`pwd`/provisioned_instances.ansible}
+export ANSIBLE_INVENTORY
+
+: ${ANSIBLE_HOST_KEY_CHECKING:=False}
+export ANSIBLE_HOST_KEY_CHECKING
+
+: ${LOG_DIR:=`pwd`/logs}
+export LOG_DIR
+
+: ${GEN_CONFIG_RPM_DIR:=`pwd`/generated_rpms}
+export GEN_CONFIG_RPM_DIR
+
+: ${CONTENT_CERT:=`pwd`/ent_cert.pem}
+export CONTENT_CERT
+
+: ${CLOUD_FORMATION_TEMPLATE:=./rhui_cloud_formation.template}
+export CLOUD_FORMATION_TEMPLATE

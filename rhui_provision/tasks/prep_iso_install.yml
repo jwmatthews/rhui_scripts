@@ -1,8 +1,8 @@
 - name: scp iso file 
-  action: copy src="${iso_path}" dest="/root/" owner=root group=root
+  action: copy src="{{iso_path}}" dest="/root/" owner=root group=root
 
 - name: create mount point
   command: mkdir -p /mnt/rhui
 
 - name: mount iso
-  shell: mount -o loop /root/$rhui_iso_filename /mnt/rhui
+  shell: mount -o loop /root/{{rhui_iso_filename}} /mnt/rhui

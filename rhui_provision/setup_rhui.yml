@@ -40,9 +40,9 @@
         - adjust_hostname_rhua.sh
 
     - name: scp ec2 hostnames.env script to each instance
-      action: copy src="{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+      action: copy src="{{item}}" dest="/home/ec2-user/hostnames.env" owner=ec2-user mode=0775
       with_items:
-        - hostnames.env
+        - "{{ lookup('env', 'HOSTNAMES_ENV') }}"
 
     - name: scp sample desired_hostnames.env script to each instance
       action: copy src="{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
@@ -75,9 +75,9 @@
         - adjust_hostname_cds1.sh
 
     - name: scp ec2 hostnames.env script to each instance
-      action: copy src="{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+      action: copy src="{{item}}" dest="/home/ec2-user/hostnames.env" owner=ec2-user mode=0775
       with_items:
-        - hostnames.env
+        - "{{ lookup('env', 'HOSTNAMES_ENV') }}"
 
     - name: scp sample desired_hostnames.env script to each instance
       action: copy src="{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
@@ -110,9 +110,9 @@
         - adjust_hostname_cds2.sh
 
     - name: scp ec2 hostnames.env script to each instance
-      action: copy src="{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+      action: copy src="{{item}}" dest="/home/ec2-user/hostnames.env" owner=ec2-user mode=0775
       with_items:
-        - hostnames.env
+        - "{{ lookup('env', 'HOSTNAMES_ENV') }}"
 
     - name: scp sample desired_hostnames.env script to each instance
       action: copy src="{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
@@ -251,15 +251,15 @@
   sudo: yes
   gather_facts: false
   vars:
-    content_cert: ent_cert.pem
+    content_cert: "{{ lookup('env', 'CONTENT_CERT') }}"
 
   tasks:
 
     - name: scp content certificate
-      action: copy src="{{content_cert}}" dest="/root/{{content_cert}}" owner=root group=root mode=0664
+      action: copy src="{{content_cert}}" dest="/root/content_cert.pem" owner=root group=root mode=0664
 
     - name: upload content cert to rhui-manager
-      action: shell sudo rhui-manager --username admin --password admin cert upload --cert /root/{{content_cert}}
+      action: shell sudo rhui-manager --username admin --password admin cert upload --cert /root/content_cert.pem
 
 
 - name: Register CDS1 and CDS2
@@ -371,11 +371,11 @@
         - add_rh_repos.py
 
     - name: scp data file
-      action: copy src="${rh_repo_data}" dest="/home/ec2-user/" owner=ec2-user group=ec2-user
+      action: copy src="{{rh_repo_data}}" dest="/home/ec2-user/" owner=ec2-user group=ec2-user
       when: rh_repo_data != ""
 
     - name: add RH repo
-      action: shell sudo python {{item}} -j ${rh_repo_data_filename}
+      action: shell sudo python {{item}} -j {{rh_repo_data_filename}}
       with_items:
         - add_rh_repos.py
       when: rh_repo_data != ""

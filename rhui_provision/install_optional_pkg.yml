@@ -7,10 +7,10 @@
 
   tasks:
     - name: scp rpm
-      action: copy src="${pkg}" dest="/root/" owner=root group=root
+      action: copy src="{{pkg}}" dest="/root/" owner=root group=root
 
     - name: install rpm
-      command: yum localinstall -y /root/${pkg_name}
+      command: yum localinstall -y /root/{{pkg_name}}
       notify: restart httpd
 
   handlers:

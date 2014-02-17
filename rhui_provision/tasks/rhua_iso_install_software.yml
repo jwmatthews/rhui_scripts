@@ -8,7 +8,7 @@
   action: service name=mongod state=started enabled=yes
 
 - name: install rhui-tools
-  action: yum name=${item} state=latest
+  action: yum name={{item}} state=latest
   with_items:
    - rh-rhui-tools
 

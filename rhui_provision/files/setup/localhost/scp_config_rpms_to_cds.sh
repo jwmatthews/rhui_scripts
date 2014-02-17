@@ -1,6 +1,6 @@
 #!/bin/sh
-source ../../../hostnames.env
 source ../../../vars
+source ${HOSTNAMES_ENV}
 
 if [ ! -d ${GEN_CONFIG_RPM_DIR} ]; then
   echo "Missing required directory: ${GEN_CONFIG_RPM_DIR}"

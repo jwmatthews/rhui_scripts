@@ -1,11 +1,9 @@
 #!/bin/sh
 source ./vars
-CLOUD_FORMATION_TEMPLATE=./rhui_cloud_formation.template
 
-ENT_CERT="./ent_cert.pem"
-if [ ! -f ${ENT_CERT} ]; then
-  echo "Missing a required entitlement certificate: expected it to be at '${ENT_CERT}'"
-  echo "Visit access.redhat.com and download a valid certificate and save it to: '${ENT_CERT}'"
+if [ ! -f ${CONTENT_CERT} ]; then
+  echo "Missing a required content certificate: expected it to be at '${CONTENT_CERT}'"
+  echo "Visit access.redhat.com and download a valid content certificate and save it to: '${CONTENT_CERT}'"
   exit 1
 fi
 
@@ -100,5 +98,5 @@ fi
 
 echo "RHUI has been setup on the below hosts"
 echo ""
-cat hostnames.env
+cat ${HOSTNAMES_ENV}
 
