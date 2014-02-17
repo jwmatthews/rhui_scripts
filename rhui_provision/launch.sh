@@ -35,17 +35,19 @@ echo " -p      Optional packages to install on RHUA/CDS (default: $PACKAGES)"
 echo " -i      Install RHUA/CDS software from ISO (default: $ISO_PATH)"
 echo " -d      Directory containing existing certificates to user for this install"
 echo " -r      RH Repo Data file"
+echo " -c      Client RPMs directory"
 echo " -h      Help"
 exit 2
 }
 
-while getopts ":p:,:i:,:d:,:r:,:h" opt; do
+while getopts ":p:,:i:,:d:,:r:,:c:,:h" opt; do
     case $opt in
         h)     usage;;
         p)     PACKAGES=$OPTARG;;
         i)     ISO_PATH=$OPTARG;;
         d)     EXISTING_CERT_DIR=$OPTARG;;
         r)     REPO_DATA_FILE=$OPTARG;;
+        c)     CLIENT_RPM_DIR=$OPTARG;;
         \?)    break;; # end of options
     esac
 done
@@ -73,12 +75,20 @@ if [ "$?" -ne "0" ]; then
 fi
 
 ### Setup RHUI Block ###
-if [ ! -z "$EXISTING_CERT_DIR" ] && [ ! -z "$REPO_DATA_FILE" ]; then
-  ./setup_rhui.sh -d ${EXISTING_CERT_DIR} -r ${REPO_DATA_FILE}
+if [ ! -z "$EXISTING_CERT_DIR" ] && [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
+  ./setup_rhui.sh -d ${EXISTING_CERT_DIR} -r ${REPO_DATA_FILE} -c ${CLIENT_RPM_DIR}
+elif [ ! -z "$EXISTING_CERT_DIR" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
+  ./setup_rhui.sh -d ${EXISTING_CERT_DIR} -c ${CLIENT_RPM_DIR}
+elif [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
+  ./setup_rhui.sh -r ${REPO_DATA_FILE} -c ${CLIENT_RPM_DIR}
+elif [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$EXISTING_CERT_DIR" ]; then
+  ./setup_rhui.sh -r ${REPO_DATA_FILE} -d ${EXISTING_CERT_DIR}
 elif [ ! -z "$EXISTING_CERT_DIR" ]; then
   ./setup_rhui.sh -d ${EXISTING_CERT_DIR}
 elif [ ! -z "$REPO_DATA_FILE" ]; then
   ./setup_rhui.sh -r ${REPO_DATA_FILE}
+elif [ ! -z "$CLIENT_RPM_DIR" ]; then
+  ./setup_rhui.sh -c ${CLIENT_RPM_DIR}
 else
   ./setup_rhui.sh
 fi

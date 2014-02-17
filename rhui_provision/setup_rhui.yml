@@ -305,6 +305,37 @@
         - custom_repos.sh
         - custom_repos_vsa2.sh
 
+- name: Populate custom repos content
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+
+  vars:
+    setup_dir: "./files/setup/remote_host"
+
+  tasks:
+    - name: scp script to populate custom repos
+      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
+      with_items:
+        - push_client_rpms.py
+
+    - name: make custom rpm dir
+      command: mkdir -p /home/ec2-user/client_rpms
+      when: custom_client_rpm_dir != ""
+
+    - name: scp custom rpms
+      action: copy src="{{item}}" dest="/home/ec2-user/client_rpms" owner=ec2-user group=ec2-user mode=664
+      with_fileglob:
+        - ${custom_client_rpm_dir}/*.rpm 
+      when: custom_client_rpm_dir != ""
+
+    - name: populate custom repos
+      action: shell sudo ./{{item}} -r /home/ec2-user/client_rpms
+      when: custom_client_rpm_dir != ""
+      with_items:
+        - push_client_rpms.py
+
 - name: Associate all custom repos to CDS
   hosts: RHUA
   user: ec2-user
