@@ -44,33 +44,31 @@ def add_repo(data):
     cds_cluster = pulp_api.cds_clusters()['cluster1']
     cds_hostnames = [c[1] for c in cds_cluster['cds']]
 
+    undeployed_repos = {}
+    for k,v in repos.items():
+        key = v.real_url
+        undeployed_repos[key] = v
+
     for product_name, repos in data.items():
-        if not products.has_key(product_name):
-            print 'No product found for %s...skipping' % product_name
-            continue
         for repo_data in repos:
-            repo_id = repo_data['label'].strip()
+            repo_path = repo_data['real_url'].strip()
             repo_cds_enabled = repo_data['cds_enabled'].strip()
             repo_rhua_enabled = repo_data['rhua_enabled'].strip()
-            # do a search & match from all known undeployed repos w/ this product name
-            matched_repo = None
-            for pulp_repo in products[product_name].repos.values():
-                if pulp_repo.label == repo_id: 
-                    print 'Found undeployed repo: %s' % pulp_repo.label
-                    matched_repo = pulp_repo
-
-            if matched_repo == None:
-                print 'Could not find %s in undeployed repo list...skipping.' % repo_id
-                continue
-            else: 
+            if undeployed_repos.has_key(repo_path):
+                print "Found %s in undeployed_repos.\n" % repo_path
                 if repo_rhua_enabled == '1':
+                    matched_repo = undeployed_repos[repo_path]
                     cert = certificate_manager.cert_for_entitlement(matched_repo.entitlement)
                     result = pulp_api.create_redhat_repo(config.get('redhat', 'server_url'), matched_repo, cert.cert_filename, config.get('rhui', 'repo_sync_frequency'))
-                    print 'Adding %s to RHUA is %s' % (matched_repo.label, result)
+                    print 'Adding %s to RHUA is %s\n' % (matched_repo.label, result)
                 if repo_cds_enabled == '1':
-                    print 'Adding %s to CDS cluster' % matched_repo.label
+                    matched_repo = undeployed_repos[repo_path]
+                    print 'Adding %s to CDS cluster\n' % matched_repo.label
                     for cds in cds_hostnames:
-                        pulp_api.associate_repo(cds, repo_id)
+                        pulp_api.associate_repo(cds, matched_repo.label)
+            else:
+                print 'Could not find %s in undeployed repo list...skipping.\n' % repo_path
+                continue
 
 if __name__ == "__main__":
     (opts, args) = generate_options()
