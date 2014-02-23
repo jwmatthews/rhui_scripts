@@ -1,0 +1,3 @@
+- {ami: ami-ffffffff, arch: x86_64_c1.xlarge_only, itype: hourly, product: RHEL, region: us-gov-west-1, version: '6.1'}
+- {ami: ami-eeeeeeee, arch: i386_m1.small_only, itype: hourly, product: RHEL, region: us-gov-west-1, version: '6.1'}
+
