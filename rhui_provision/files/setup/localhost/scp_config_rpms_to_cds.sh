@@ -9,7 +9,7 @@ if [ ! -d ${GEN_CONFIG_RPM_DIR} ]; then
 fi
 
 echo "scp config rpm to CDS_01"
-scp -i ${SSH_PRIV_KEY} ${GEN_CONFIG_RPM_DIR}/rh-cds1*.rpm ${SSH_USER}@${CDS_01}:~
+scp -i ${EC2_SSH_PRIV_KEY} ${GEN_CONFIG_RPM_DIR}/rh-cds1*.rpm ${EC2_SSH_USER}@${CDS_01}:~
 
 echo "scp config rpm to CDS_02"
-scp -i ${SSH_PRIV_KEY} ${GEN_CONFIG_RPM_DIR}/rh-cds2*.rpm ${SSH_USER}@${CDS_02}:~
+scp -i ${EC2_SSH_PRIV_KEY} ${GEN_CONFIG_RPM_DIR}/rh-cds2*.rpm ${EC2_SSH_USER}@${CDS_02}:~

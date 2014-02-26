@@ -7,16 +7,21 @@ if [ ! -f ${CONTENT_CERT} ]; then
   exit 1
 fi
 
-if [ ! -f ${SSH_PRIV_KEY} ]; then
+if [ -z ${EC2_SSH_PRIV_KEY} ]; then
+  echo "Please re-run with 'EC2_SSH_PRIV_KEY' set."
+  exit
+fi
+
+if [ ! -f ${EC2_SSH_PRIV_KEY} ]; then
   echo "Missing required private ssh key for ec2 instances"
-  echo "Please copy the ssh key to: ${SSH_PRIV_KEY}"
-  echo "Please also run a chmod 600 ${SSH_PRIV_KEY}"
+  echo "Please copy the ssh key to: ${EC2_SSH_PRIV_KEY}"
+  echo "Please also run a chmod 600 ${EC2_SSH_PRIV_KEY}"
   exit 1
 fi
 
-if [ $(stat -c %a ${SSH_PRIV_KEY}) != 600 ]; then
-  echo "Please change the permissions of: ${SSH_PRIV_KEY} to be 600."
-  exit 1
+if [ $(stat -c %a ${EC2_SSH_PRIV_KEY}) != 600 ]; then
+  echo "Changing permissions of: ${EC2_SSH_PRIV_KEY} to be 600."
+  chmod 600 ${EC2_SSH_PRIV_KEY}
 fi
 
 if [ ! -d ${LOG_DIR} ]; then
@@ -50,7 +55,7 @@ while getopts ":p:,:i:,:d:,:r:,:c:,:h" opt; do
     esac
 done
 
-./launch_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY}
+./launch_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY} --ssh_user ${EC2_SSH_USER} --ssh_key_name ${EC2_SSH_KEY_NAME} --ssh_priv_key_path ${EC2_SSH_PRIV_KEY} --region ${REGION} --instance_type ${DEFAULT_EC2_INSTANCE_TYPE}
 if [ "$?" -ne "0" ]; then
 	echo "Failed to run launch_stack.py"
 	exit 1

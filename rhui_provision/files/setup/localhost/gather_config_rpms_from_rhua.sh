@@ -9,5 +9,5 @@ fi
 rm -f ${GEN_CONFIG_RPM_DIR}/*.rpm
 
 echo "scp files from RHUA"
-scp -i ${SSH_PRIV_KEY} ${SSH_USER}@${RHUA}:/etc/rhui/*.rpm ${GEN_CONFIG_RPM_DIR}
+scp -i ${EC2_SSH_PRIV_KEY} ${EC2_SSH_USER}@${RHUA}:/etc/rhui/*.rpm ${GEN_CONFIG_RPM_DIR}
 

@@ -43,4 +43,4 @@ if [ ! -z "$CLIENT_RPM_DIR" ]; then
   CLIENT_RPM_DIR=`readlink -f $CLIENT_RPM_DIR`
 fi
 
-ansible-playbook setup_rhui.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${SSH_PRIV_KEY} --extra-vars "existing_cert_dir=${EXISTING_CERT_DIR} rh_repo_data=${REPO_DATA_FILE} rh_repo_data_filename=${REPO_DATA_FILENAME} custom_client_rpm_dir=${CLIENT_RPM_DIR}" | tee ${LOG_DIR}/setup_rhui.log
+ansible-playbook setup_rhui.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${EC2_SSH_PRIV_KEY} --extra-vars "existing_cert_dir=${EXISTING_CERT_DIR} rh_repo_data=${REPO_DATA_FILE} rh_repo_data_filename=${REPO_DATA_FILENAME} custom_client_rpm_dir=${CLIENT_RPM_DIR}" | tee ${LOG_DIR}/setup_rhui.log

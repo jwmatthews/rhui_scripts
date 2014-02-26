@@ -43,4 +43,4 @@ echo "Will create a new client that uses:"
 echo "  Real hostnames:  HOSTNAMES_ENV = '${HOSTNAMES_ENV}'"
 echo "  Fake hostnames:  DESIRED_HOSTNAMES_ENV = '${DESIRED_HOSTNAMES_ENV}'"
 
-ansible-playbook create_client.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${SSH_PRIV_KEY} --extra-vars "hostnames_env=${HOSTNAMES_ENV} desired_hostnames_env=${DESIRED_HOSTNAMES_ENV}" | tee ${LOG_DIR}/create_client.log
+ansible-playbook create_client.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${EC2_SSH_PRIV_KEY} --extra-vars "hostnames_env=${HOSTNAMES_ENV} desired_hostnames_env=${DESIRED_HOSTNAMES_ENV}" | tee ${LOG_DIR}/create_client.log

@@ -32,7 +32,7 @@ if [ ! -z "$ISO_PATH" ]; then
   ISO_FILENAME=`echo $ISO_PATH | rev | cut -f1 -d'/' | rev`
 fi
 
-ansible-playbook install_software.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${SSH_PRIV_KEY} --extra-vars "iso_path=$ISO_PATH rhui_iso_filename=$ISO_FILENAME" | tee ${LOG_DIR}/install_software.log
+ansible-playbook install_software.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${EC2_SSH_PRIV_KEY} --extra-vars "iso_path=$ISO_PATH rhui_iso_filename=$ISO_FILENAME" | tee ${LOG_DIR}/install_software.log
 
 if [ ! -z "$PACKAGES" ]; then
     IFS=',' read -a array <<< "$PACKAGES"
@@ -40,7 +40,7 @@ if [ ! -z "$PACKAGES" ]; then
     do
         PKG=`readlink -f $element`
         PKG_NAME=`echo $PKG | rev | cut -f1 -d'/' | rev`
-        ansible-playbook install_optional_pkg.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${SSH_PRIV_KEY} --extra-vars "pkg=$PKG pkg_name=$PKG_NAME" | tee ${LOG_DIR}/install_optional_pkg.log
+        ansible-playbook install_optional_pkg.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${EC2_SSH_PRIV_KEY} --extra-vars "pkg=$PKG pkg_name=$PKG_NAME" | tee ${LOG_DIR}/install_optional_pkg.log
     done
 fi
 
