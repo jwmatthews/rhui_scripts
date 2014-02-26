@@ -118,11 +118,14 @@ def wait_for_instances_ssh(instances):
 def wait_for_ssh(instance, ssh_user, ssh_key, wait=40):
     print "Waiting for instance '%s' to listen for ssh requests" % (instance.dns_name)
     for i in range(1, wait):
-        print "Attempt '%s' waiting for ssh to come up on %s" % (i, instance.dns_name)
+        print "Attempt '%s' waiting for ssh as '%s' with key '%s' to come up on %s" % (i, ssh_user, ssh_key, instance.dns_name)
         status, out, err = ssh_command(instance.dns_name, ssh_user, ssh_key, "ls", exit_on_error=False)
         if status:
             print "%s %s is up\n" % (instance.ami_id, instance.dns_name)
             return True
+        else:
+            print out
+            print err
         time.sleep(15)
     print "\n***"
     print "%s %s SSH never came up" % (instance.ami_id, instance.dns_name)
@@ -195,6 +198,7 @@ def run_command(cmd, verbose=False, exit_on_error=True, retries=0, delay=10):
     @param cmd: string command to run
     @return tuple (True/False, stdout, stderr) true on sucess, false on failure
     """
+    print "Running:  %s" % (cmd)
     handle = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     out_msg, err_msg = handle.communicate(None)
     if verbose:
@@ -220,18 +224,27 @@ def scp_to_command(hostname, ssh_user, ssh_key, from_path, to_path, exit_on_erro
     return run_command(cmd, exit_on_error=exit_on_error)
 
 def ssh_command(hostname, ssh_user, ssh_key, command, exit_on_error=True):
-    cmd = "ssh -o \"StrictHostKeyChecking no\" -t -i %s %s@%s \"%s\"" % (ssh_key, ssh_user, hostname, command)
-    return run_command(cmd, exit_on_error=exit_on_error)
+    cmd = "ssh -o PubkeyAuthentication=yes -o \"StrictHostKeyChecking no\" -t -i %s %s@%s \"%s\"" % (ssh_key, ssh_user, hostname, command)
+    return run_command(cmd, verbose=True, exit_on_error=exit_on_error)
 
 def execute_on_all(instances, ssh_user, ssh_key, cmd):
     output = {}
     for instance in instances:
-        (status, out, err) = ssh_command(instance.dns_name, ssh_user, ssh_key, cmd)
+        (status, out, err) = ssh_command(instance.dns_name, ssh_user, ssh_key, cmd, exit_on_error=False)
         output[instance.ami_id] = {}
         output[instance.ami_id]["status"] = status
         output[instance.ami_id]["out"] = out
         output[instance.ami_id]["err"] = err
     return output
+
+def write_output(data, out_filename):
+    output_json = json.dumps(data, sort_keys=True, indent=4)
+    f = open(out_filename, "w")
+    try:
+        f.write(output_json)
+    finally:
+        f.close()
+    return output_json
 
 if __name__ == "__main__":
     parser = get_opt_parser()
@@ -262,7 +275,11 @@ if __name__ == "__main__":
     instances = wait_for_running(instances)
     wait_for_instances_ssh(instances)
 
+    print "SSH is up on all instances"
     cmd = "rpm -qa | grep amazon"
-    output = execute_on_all(instances, ssh_user, ssh_key, cmd)
-    print json.dumps(output, sort_keys=True, indent=4)
+    output = execute_on_all(instances, ssh_user, ssh_key, cmd) 
+    write_output(output, "output_rhui_client_check_"+config_file+".json")    
 
+    cmd = "sudo yum -y install zsh"
+    output = execute_on_all(instances, ssh_user, ssh_key, cmd) 
+    write_output(output, "output_yum_install_zsh_"+config_file+".json")    
