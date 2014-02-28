@@ -69,7 +69,7 @@ def parse_args():
     parser.add_option('--region',
         default=DEFAULT_REGION, help='use specified region')
     parser.add_option('--timeout', type=int,
-        default=30, help='stack creation timeout')
+        default=120, help='stack creation timeout')
     parser.add_option('--ans_out_file', 
         default="provisioned_instances.ansible", help="Filename to store ansible ec2 inventory information representing provisioned instances")
     parser.add_option('--bash_out_file', 
@@ -120,7 +120,8 @@ def create_cloudformation(con_cf, json_body, parameters, stack_id, timeout):
     """
     logging.info("Creating stack with ID: " + stack_id)
     con_cf.create_stack(stack_id, template_body=json_body,
-                    parameters=parameters, timeout_in_minutes=timeout)
+                    parameters=parameters, timeout_in_minutes=timeout,
+                    disable_rollback=True)
 
     is_complete = False
     result = False
@@ -129,16 +130,16 @@ def create_cloudformation(con_cf, json_body, parameters, stack_id, timeout):
         time.sleep(30)
         try:
             for event in con_cf.describe_stack_events(stack_id):
+                logging.info("StackEvent: %s %s %s" % (event, event.resource_type, event.resource_status))
                 if event.resource_type == "AWS::CloudFormation::Stack" and event.resource_status == "CREATE_COMPLETE":
                     logging.info("Stack creation completed")
                     is_complete = True
                     result = True
-                    break
-                if event.resource_type == "AWS::CloudFormation::Stack" and event.resource_status == "ROLLBACK_COMPLETE":
-                    logging.info("Stack creation failed")
+                    #break
+                if event.resource_status == "ROLLBACK_COMPLETE" or event.resource_status == "CREATE_FAILED":
+                    logging.info("Stack creation failed: %s" % (event))
                     logging.info(event)
                     is_complete = True
-                    break
         except Exception, e:
             logging.exception("Creation of Cloud Formation Stack '%s' was unsuccessful" % (stack_id))
             raise
@@ -224,7 +225,7 @@ def try_port_22(hostname):
     s.close()
     return status
 
-def wait_for_ssh(hostnames, ssh_user, ssh_priv_key_path, timeout_in_minutes=15):
+def wait_for_ssh(hostnames, ssh_user, ssh_priv_key_path, timeout_in_minutes=120):
     # Loop through instances and wait for all to have a SSH service that is acceptable
     for hostname in hostnames:
         logging.info("Waiting for SSH on %s" % (hostname))
