@@ -21,10 +21,10 @@ def get_inode(path):
     return os.lstat(path).st_ino
 
 def get_inode_of_link_target(link_path):
-    target = link_target(link_path)
+    target = get_link_target(link_path)
     return os.lstat(target).st_ino
 
-def link_target(link_path):    
+def get_link_target(link_path):    
     target = os.readlink(link_path)
     if not target.startswith('/'):
         # Handle relative symlinks
@@ -32,12 +32,12 @@ def link_target(link_path):
         target = os.path.join(dir_path, target)
     return target
 
-def read_dir(path, seen=None):
-    if not seen:
-        seen = set()
+def read_dir(path):
+    seen = set()
     files = []
     links = []
     empty_dirs = []
+
     for w_root, w_dirs, w_files in os.walk(path, followlinks=False):
         for f in w_files:
             full_path = os.path.join(w_root, f)
@@ -67,23 +67,28 @@ def process_path(path):
 
     while not path_queue.empty():
         head = path_queue.get()
-        needs_process = True
+        print "%s items on queue, examining: '%s'" % (path_queue.qsize(), head)
 
-        # If a link, ensure it's not pointing to something we've already examined.
-        if os.path.islink(head) and os.path.exists(head):
-            inode = get_inode_of_link_target(head)
-            if inode in seen:
-                needs_process = False
+        if os.path.islink(head):
+            head = os.path.abspath(head)
+            known_links.add(head)
+            seen = update_seen(head, seen)
+            target = get_link_target(head)
+            path_queue.put(target)
+            continue
 
-        if needs_process:
-            path = head
-            if os.path.islink(head):
-                path = link_target(head)
+        # At this point head is either a file or a dir, it is not a symlink
+        inode = get_inode(head)
+        if inode in seen:
+            # We've already seen this file so skip processing it
+            # Prevents traversing a recursive symlink
+            continue
+        seen = update_seen(head, seen)
 
-            tmp_links, tmp_files, tmp_empty_dirs, tmp_seen = read_dir(path)
-            # Merge the newly discovered files with what we previously knew.
-            # known_files is expected to be a set so we assume duplicates will 
-            # be filtered automatically
+        if os.path.isfile(head):
+            known_files.add(head)
+        else:
+            tmp_links, tmp_files, tmp_empty_dirs, tmp_seen = read_dir(head)
             known_files.update(tmp_files)
             known_empty_dirs.update(tmp_empty_dirs)
             seen.update(tmp_seen)
@@ -94,11 +99,20 @@ def process_path(path):
             for l in unknown_links:
                 path_queue.put(l)
 
-        if os.path.islink(head):
-            known_links.add(head)
-
     return known_links, known_files, known_empty_dirs, seen
 
+def write_output_file(links, files, empty_dirs, out_filename):
+    f = open(out_filename, "w")
+    for entry in links:
+        f.write("%s\n" % (entry))
+    f.write("\n")
+    for entry in files:
+        f.write("%s\n" % (entry))
+    f.write("\n") # Empty line to break up output
+    for entry in empty_dirs:
+        f.write("%s\n" % (entry))
+    f.close()
+    return
 
 if __name__ == "__main__":
     parser = get_parser()
@@ -109,22 +123,10 @@ if __name__ == "__main__":
         parser.print_help()
         print "Please re-run with a source path provided"
         sys.exit(1)
+    
     links, files, empty_dirs, seen = process_path(source_path)
+    write_output_file(links, files, empty_dirs, out_filename)
 
-    f = open(out_filename, "w")
-    for entry in files:
-        f.write("%s\n" % (entry))
-    
-    f.write("\n") # Empty line to break up output
-    for entry in empty_dirs:
-        f.write("%s\n" % (entry))
-
-    f.write("\n")
-    for entry in links:
-        target_path = os.readlink(entry)
-        f.write("%s,%s\n" % (entry, target_path))
-    
-    f.close()
     print "Results written to: %s" % (out_filename)
     print "Found:"
     print "\t %s Files" % (len(files))

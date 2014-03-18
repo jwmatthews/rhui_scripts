@@ -1,0 +1,11 @@
+/Users/jmatthews/git/RHUI/rhui_scripts/playpen/cds/testdir/published/yum/master/repo_a/zsh-2.rpm
+/Users/jmatthews/git/RHUI/rhui_scripts/playpen/cds/testdir/published/yum/master/repo_a/Packages
+/Users/jmatthews/git/RHUI/rhui_scripts/playpen/cds/testdir/published/yum/master/repo_a/Server
+/Users/jmatthews/git/RHUI/rhui_scripts/playpen/cds/testdir/published/yum/master/repo_a/zsh-1.rpm
+/Users/jmatthews/git/RHUI/rhui_scripts/playpen/cds/testdir/published/repo_a
+
+/Users/jmatthews/git/RHUI/rhui_scripts/playpen/cds/testdir/published/yum/master/repo_a/repodata/repomd.xml
+/Users/jmatthews/git/RHUI/rhui_scripts/playpen/cds/testdir/published/yum/master/repo_a/../../../../content/zsh/checksum2/zsh-2.rpm
+/Users/jmatthews/git/RHUI/rhui_scripts/playpen/cds/testdir/published/yum/master/repo_a/repodata/primary.xml.gz
+/Users/jmatthews/git/RHUI/rhui_scripts/playpen/cds/testdir/published/yum/master/repo_a/../../../../content/zsh/checksum1/zsh-1.rpm
+
