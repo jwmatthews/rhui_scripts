@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 RPM_REPO_MAP = {
-    'el5': ['rhui-client-config-rhel-server-5-i386-os', 'rhui-client-confi-rhel-server-5-x86_64-os'],
+    'el5': ['rhui-client-config-rhel-server-5-i386-os', 'rhui-client-config-rhel-server-5-x86_64-os'],
     'beta-el5': ['rhui-client-config-beta-rhel-server-5-x86_64-os', 'rhui-client-config-beta-rhel-server-5-i386-os'],
     'beta-vsa2-el5': [],
     'ha-el5': [],
