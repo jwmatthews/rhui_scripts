@@ -296,6 +296,7 @@
         - custom_repos_ha.sh
         - custom_repos_jboss.sh
         - custom_repos.sh
+        - custom_repos_sap.sh
         - custom_repos_vsa.sh
 
     - name: create custom repos
@@ -305,6 +306,7 @@
         - custom_repos_ha.sh
         - custom_repos_jboss.sh
         - custom_repos.sh
+        - custom_repos_sap.sh
         - custom_repos_vsa.sh
 
 - name: Populate custom repos content
