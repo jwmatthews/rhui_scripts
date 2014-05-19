@@ -66,6 +66,38 @@ EOQ
 cat <<EOQ | rhui-manager --username admin --password admin
 r
 c
+rhui-client-config-rhel-server-7-i386-os
+Red Hat Update Infrastructure 2.0 Client Configuration Server 7 i386
+rhui-client-config/rhel/server/7/i386/os
+1
+y
+rhui-client-config/rhel/server/7/i386/os
+y
+n
+n
+y
+q
+EOQ
+
+cat <<EOQ | rhui-manager --username admin --password admin
+r
+c
+rhui-client-config-rhel-server-7-x86_64-os
+Red Hat Update Infrastructure 2.0 Client Configuration Server 7 x86_64
+rhui-client-config/rhel/server/7/x86_64/os
+1
+y
+rhui-client-config/rhel/server/7/x86_64/os
+y
+n
+n
+y
+q
+EOQ
+
+cat <<EOQ | rhui-manager --username admin --password admin
+r
+c
 rhui-client-config-rhel-server-5-i386-mrg
 Red Hat Update Infrastructure 2.0 Client Configuration Server 5 MRG 2.0 i386
 rhui-client-config/rhel/server/5/i386/mrg-g/2.0
