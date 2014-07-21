@@ -14,6 +14,11 @@ def generate_options():
     parser = OptionParser()
     parser.add_option("-j", "--json_input", dest="json_input",
                       help="JSON repo file")
+    parser.add_option("-u", "--username", dest="username", default="admin",
+                      help="RHUI username")
+    parser.add_option("-p", "--password", dest="password", default="admin",
+                      help="RHUI password")
+
     (opt, args) = parser.parse_args()
     return (opt, args)
 
@@ -22,20 +27,20 @@ def check_required_fields(opts, args):
         print '--json_input field cannot be blank, exiting...'
         sys.exit(1)
 
-def read_json(opts, args):
+def read_json(filename, args):
     try:
-        fh = open(opts.json_input, 'r')
+        fh = open(filename, 'r')
         data = json.loads(fh.read())
         fh.close()
         return data
     except IOError:
-        print 'unable to read %s\n' % opts.json_input
+        print 'unable to read %s\n' % filename
         return {}
 
-def add_repo(data):
+def add_repo(data, username="admin", password="admin"):
     config = _load_configuration(filename="/etc/rhui/rhui-tools.conf")
     prompt = Prompt()
-    pulp_api = _pulp_api(config, prompt, "admin", "admin")
+    pulp_api = _pulp_api(config, prompt, username, password)
     cdn_api = _cdn_api(config)
     certificate_manager = _cert_manager(config, prompt)
     candidate_repo_manager = CandidateRepoManager(config, cdn_api, pulp_api, certificate_manager)
@@ -73,5 +78,10 @@ def add_repo(data):
 if __name__ == "__main__":
     (opts, args) = generate_options()
     check_required_fields(opts, args)
-    data = read_json(opts, args)
-    add_repo(data)
+
+    filename = opts.json_input
+    username = opts.username
+    password = opts.password
+
+    data = read_json(filename, args)
+    add_repo(data, username, password)

@@ -7,6 +7,10 @@
 - name: enable mongodb
   action: service name=mongod state=started enabled=yes
 
+#
+# TODO: Investigate if this install rhui-tools block is still needed
+# I don't think below is needed, install_RHUA.sh will invoke ./install_tools.
+# 
 - name: install rhui-tools
   action: yum name={{item}} state=latest
   with_items:
