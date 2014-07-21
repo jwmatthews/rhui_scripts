@@ -6,7 +6,7 @@ Red Hat Update Infrastructure 2.0 Client Configuration Server 6 High Availabilit
 rhui-client-config/rhel/server/6/x86_64/ha/
 2
 y
-rhui-client-config/rhel/server/6/\$basearch/ha/1.0
+rhui-client-config/rhel/server/6/\$basearch/ha/
 y
 n
 n
