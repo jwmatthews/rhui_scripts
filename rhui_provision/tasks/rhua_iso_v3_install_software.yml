@@ -1,0 +1,34 @@
+- name: setup rhui-installer
+  action: shell cd /mnt/rhui && ./setup_package_repos --nogpgsigs # TODO: This needs to be removed for production ISOs
+  
+- name: install rhui-installer
+  action: yum name={{item}} state=latest
+  with_items:
+   - rhui-installer
+
+- name: enable rpcbind
+  action: service name=rpcbind state=restarted enabled=yes
+
+- name: install mongodb
+  action: yum name={{item}} state=latest
+  with_items:
+   - mongodb
+   - mongodb-server
+
+- name: increate mongod startup service timeout
+  action: shell cd /usr/lib/systemd/system/ && awk '/\[Install\]/ && c == 0 {c = 1; print "TimeoutStartSec=3min 0s"}; {print}' mongod.service  | tee tmp && mv tmp mongod.service
+
+- name: reload systemd
+  action: shell systemctl daemon-reload
+
+- name: install rhua
+  action: shell export LANG=en_US.UTF-8 && export LANGUAGE=en_US.UTF-8 && export LC_ALL=en_US.UTF-8 && rhui-installer || true
+  notify: restart httpd
+
+# Note mongodb requires a few minutes to preallocate it's db files
+# We are starting mongodb now so while other tasks run it's DB files will be preallocated
+#- name: enable mongodb
+#  action: service name=mongod state=started enabled=yes
+
+#- name: Create NSS certificates for qpid
+#  command: /usr/bin/nss-db-gen

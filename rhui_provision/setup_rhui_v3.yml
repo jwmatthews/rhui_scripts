@@ -1,0 +1,372 @@
+---
+
+- name: Adjust firewall
+  hosts: RHUA:CDS_01:CDS_02
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+
+  tasks:
+    - name: update firewall
+      action: copy src="files/{{item}}" dest="/{{item}}" owner=root group=root
+      with_items:
+      - etc/sysconfig/iptables
+      notify: restart iptables
+      
+  handlers:
+    - name: restart iptables
+      action: service name=iptables state=restarted
+
+###
+# TODO
+# I am replicating a task 3 times because I don't know how to tell while task runs what host it is executing on
+# This should be cleaned up once we get something working
+#   Goal is to be able to distinguish if this is running on RHUA, then pass in a parameter of 'RHUA' 
+#   and have script read the RHUA env variable to determine the desired hostname
+###
+- name: Adjust hostname of RHUA
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+  vars:
+      setup_dir: "./files/setup/remote_host"
+
+  tasks:
+
+    - name: scp adjust_hostname.sh script to each instance
+      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+      with_items:
+        - adjust_hostname_rhua.sh
+
+    - name: scp ec2 hostnames.env script to each instance
+      action: copy src="{{item}}" dest="/home/ec2-user/hostnames.env" owner=ec2-user mode=0775
+      with_items:
+        - "{{ lookup('env', 'HOSTNAMES_ENV') }}"
+
+    - name: scp sample desired_hostnames.env script to each instance
+      action: copy src="{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+      with_items:
+        - desired_hostnames.env
+      when: existing_cert_dir == ""
+
+    - name: scp specific desired_hostnames.env script to each instance
+      action: copy src="{{item}}" dest="/home/ec2-user/" owner=ec2-user mode=0775
+      with_items:
+        - "{{existing_cert_dir}}/desired_hostnames.env"
+      when: existing_cert_dir != ""
+
+    - name: Run adjust_hostname.sh on each instance
+      command: sudo ./adjust_hostname_rhua.sh chdir=/home/ec2-user
+
+- name: Adjust hostname of each host
+  hosts: CDS_01
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+  vars:
+      setup_dir: "./files/setup/remote_host"
+
+  tasks:
+
+    - name: scp adjust_hostname.sh script to each instance
+      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+      with_items:
+        - adjust_hostname_cds1.sh
+
+    - name: scp ec2 hostnames.env script to each instance
+      action: copy src="{{item}}" dest="/home/ec2-user/hostnames.env" owner=ec2-user mode=0775
+      with_items:
+        - "{{ lookup('env', 'HOSTNAMES_ENV') }}"
+
+    - name: scp sample desired_hostnames.env script to each instance
+      action: copy src="{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+      with_items:
+        - desired_hostnames.env
+      when: existing_cert_dir == ""
+
+    - name: scp specific desired_hostnames.env script to each instance
+      action: copy src="{{item}}" dest="/home/ec2-user/" owner=ec2-user mode=0775
+      with_items:
+        - "{{existing_cert_dir}}/desired_hostnames.env"
+      when: existing_cert_dir != ""
+
+    - name: Run adjust_hostname.sh on each instance
+      command: sudo ./adjust_hostname_cds1.sh chdir=/home/ec2-user
+
+- name: Adjust hostname of each host
+  hosts: CDS_02
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+  vars:
+      setup_dir: "./files/setup/remote_host"
+
+  tasks:
+
+    - name: scp adjust_hostname.sh script to each instance
+      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+      with_items:
+        - adjust_hostname_cds2.sh
+
+    - name: scp ec2 hostnames.env script to each instance
+      action: copy src="{{item}}" dest="/home/ec2-user/hostnames.env" owner=ec2-user mode=0775
+      with_items:
+        - "{{ lookup('env', 'HOSTNAMES_ENV') }}"
+
+    - name: scp sample desired_hostnames.env script to each instance
+      action: copy src="{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+      with_items:
+        - desired_hostnames.env
+      when: existing_cert_dir == ""
+
+    - name: scp specific desired_hostnames.env script to each instance
+      action: copy src="{{item}}" dest="/home/ec2-user/" owner=ec2-user mode=0775
+      with_items:
+        - "{{existing_cert_dir}}/desired_hostnames.env"
+      when: existing_cert_dir != ""
+
+    - name: Run adjust_hostname.sh on each instance
+      command: sudo ./adjust_hostname_cds2.sh chdir=/home/ec2-user
+
+
+- name: Copy existing certificates or Generate new ones
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+
+  tasks:
+    - name: scp setup scripts to RHUA
+      action: copy src="./files/setup/remote_host/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+      with_items:
+      - vars
+
+    - include: tasks/rhua_generate_certs.yml
+      when: existing_cert_dir == ""
+
+    - include: tasks/rhua_copy_existing_certs.yml
+      when: existing_cert_dir != ""
+
+
+- name: Execute rhui-installer on RHUA
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+  vars:
+      answers_file: "/home/ec2-user/rhui-certs/answers"
+
+  tasks:
+    - name: Run rhui-installers
+      command: sudo rhui-installer {{answers_file}} chdir=/home/ec2-user
+
+    # Note we need to disable the yum rhui-lb plugin, because we sometimes run into an issue
+    # of faking out /etc/hosts to overwrite the 'real' production CDSes
+    # for these cases...we run into a yum issue since the CDSses are not running yet and rhui-lb plugin fails to contact the CDS
+    - name: Install rh-rhua-config on RHUA
+      action: shell yum -y --nogpgcheck --disableplugin=rhui-lb --disablerepo="*" localinstall /etc/rhui/rh-rhua-config* 
+
+
+####
+# Performing below copy & install steps in shell script
+#  - Don't know how to use ansible and ensure that rh-cds1-config* gets scpd to CDS01
+#    and rh-cds2-config gets scpd to CDS02.
+#  - Will keep this logic in a shell script, until we learn of a better solution
+####
+- name: Copy and install generated config RPMs
+  hosts: localhost
+  connection: local
+  user: root
+  gather_facts: false
+  vars:
+      setup_dir: "./files/setup/localhost"
+
+  tasks:
+    - name: Gather config rpms to localhost
+      local_action: shell cd {{setup_dir}} && ./gather_config_rpms_from_rhua.sh
+
+    - name: SCP config rpms to CDSes
+      local_action: shell cd {{setup_dir}} && ./scp_config_rpms_to_cds.sh
+
+    - name: Install config rpms on CDSes
+      local_action: shell cd {{setup_dir}} && ./install_config_rpms.sh
+
+- name: Run pulp-server init
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+
+  tasks:
+    - name: pulp-server init
+      action: shell service pulp-server init
+
+
+- name: Restart Services on RHUA
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+
+  tasks:
+    - name: restart pulp-server
+      action: service name=pulp-server state=restarted
+
+
+- name: Restart Services on CDS
+  hosts: CDS_01:CDS_02
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+
+  tasks:
+    - name: restart pulp-cds
+      action: service name=pulp-cds state=restarted
+
+    - name: restart goferd
+      action: service name=goferd state=restarted
+
+
+- name: rhui-manager initial setup with CA 
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+  vars:
+      setup_dir: "./files/setup/remote_host"
+
+  tasks:
+
+    - name: scp script to create initial user
+      action: copy src="{{setup_dir}}/rhui_manager_initial_setup.sh" dest="/home/ec2-user/rhui_manager_initial_setup.sh" owner=ec2-user mode=0775
+
+    - name: run rhui-manager for first time and give it path to CA
+      action: shell sudo /home/ec2-user/rhui_manager_initial_setup.sh
+
+
+- name: Upload content certificate
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+  vars:
+    content_cert: "{{ lookup('env', 'CONTENT_CERT') }}"
+
+  tasks:
+
+    - name: scp content certificate
+      action: copy src="{{content_cert}}" dest="/root/content_cert.pem" owner=root group=root mode=0664
+
+    - name: upload content cert to rhui-manager
+      action: shell sudo rhui-manager --username admin --password admin cert upload --cert /root/content_cert.pem
+
+
+- name: Create custom repos
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+  vars:
+    setup_dir: "./files/setup/remote_host"
+  
+  tasks:
+    - name: scp script to create custom repos
+      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
+      with_items:
+        - custom_repos_beta.sh
+        - custom_repos_ha.sh
+        - custom_repos_jboss.sh
+        - custom_repos.sh
+        - custom_repos_sap.sh
+        - custom_repos_vsa.sh
+
+    - name: create custom repos
+      action: shell sudo ./{{item}}
+      with_items:
+        - custom_repos_beta.sh
+        - custom_repos_ha.sh
+        - custom_repos_jboss.sh
+        - custom_repos.sh
+        - custom_repos_sap.sh
+        - custom_repos_vsa.sh
+
+- name: Populate custom repos content
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+
+  vars:
+    setup_dir: "./files/setup/remote_host"
+
+  tasks:
+    - name: scp script to populate custom repos
+      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
+      with_items:
+        - push_client_rpms.py
+
+    - name: make custom rpm dir
+      command: mkdir -p /home/ec2-user/client_rpms
+      when: custom_client_rpm_dir != ""
+
+    - name: scp custom rpms
+      action: copy src="{{item}}" dest="/home/ec2-user/client_rpms" owner=ec2-user group=ec2-user mode=664
+      with_fileglob:
+        - ${custom_client_rpm_dir}/*.rpm 
+      when: custom_client_rpm_dir != ""
+
+    - name: populate custom repos
+      action: shell sudo ./{{item}} -r /home/ec2-user/client_rpms
+      when: custom_client_rpm_dir != ""
+      with_items:
+        - push_client_rpms.py
+
+- name: Add RH repos
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+
+  vars:
+    setup_dir: "./files/setup/remote_host"
+  
+  tasks:
+    - name: scp script to add RH repo
+      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
+      with_items:
+        - add_rh_repos.py
+
+    - name: scp data file
+      action: copy src="{{rh_repo_data}}" dest="/home/ec2-user/" owner=ec2-user group=ec2-user
+      when: rh_repo_data != ""
+
+    - name: add RH repo
+      action: shell sudo python {{item}} -j {{rh_repo_data_filename}}
+      with_items:
+        - add_rh_repos.py
+      when: rh_repo_data != ""
+
+- name: Sync RHUA repos
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+
+  vars:
+    setup_dir: "./files/setup/remote_host"
+  
+  tasks:
+    - name: scp script to sync repos
+      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
+      with_items:
+        - sync_all_repos.sh
+
+    - name: sync all repos
+      action: shell sudo ./{{item}}
+      with_items:
+        - sync_all_repos.sh
+
+  handlers:
+    - name: restart httpd
+      action: service name=httpd state=restarted
