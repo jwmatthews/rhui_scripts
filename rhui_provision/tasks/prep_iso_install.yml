@@ -6,3 +6,7 @@
 
 - name: mount iso
   shell: mount -o loop /root/{{rhui_iso_filename}} /mnt/rhui
+
+- name: setup rhui-installer
+  action: shell cd /mnt/rhui && ./setup_package_repos --nogpgsigs # TODO: This needs to be removed for production ISOs
+  

@@ -43,8 +43,32 @@
     - name: restart httpd
       action: service name=httpd state=restarted
 
-- name: Install Packages for CDS
+- name: Setup ssh-key on RHUA for CDS
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  vars:
+    ssh_key: ""
+  tasks:
+    - name: create ssh key
+      action: shell sudo ssh-keygen -f /root/.ssh/cds.rsa -t rsa -N ''
+
+    - name: cat ssh key
+      shell: sudo cat /root/.ssh/cds.rsa.pub
+      register: ssh_key
+
+    - set_fact:
+        key: "{{ssh_key.stdout}}"
+
+- name: Setup ssh-key on CDS
   hosts: CDS_01:CDS_02
+  user: ec2-user
+  tasks:
+    - name: add ssh key
+      shell: echo "{{ hostvars[groups['RHUA'][0]]['key'] }}" | sudo tee -a /root/.ssh/authorized_keys
+
+- name: Install Packages for CDS
+  hosts: RHUA
   user: ec2-user
   sudo: yes
   gather_facts: true
@@ -56,7 +80,7 @@
     - include: tasks/cds_repo_install_software.yml
       when: iso_path == ""
 
-    - include: tasks/cds_iso_install_software.yml
+    - include: tasks/cds_iso_v3_install_software.yml
       when: iso_path != ""
   handlers:
     - name: restart httpd

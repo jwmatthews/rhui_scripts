@@ -1,6 +1,3 @@
-- name: setup rhui-installer
-  action: shell cd /mnt/rhui && ./setup_package_repos --nogpgsigs # TODO: This needs to be removed for production ISOs
-  
 - name: install rhui-installer
   action: yum name={{item}} state=latest
   with_items:
