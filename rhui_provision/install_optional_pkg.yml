@@ -11,7 +11,7 @@
 
     - name: install rpm
       command: yum localinstall -y /root/{{pkg_name}}
-      notify: restart httpd
+      #notify: restart httpd
 
   handlers:
     - name: restart httpd

@@ -55,7 +55,7 @@ while getopts ":p:,:i:,:d:,:r:,:c:,:h" opt; do
     esac
 done
 
-./launch_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY} --ssh_user ${EC2_SSH_USER} --ssh_key_name ${EC2_SSH_KEY_NAME} --ssh_priv_key_path ${EC2_SSH_PRIV_KEY} --region ${REGION} --instance_type ${DEFAULT_EC2_INSTANCE_TYPE}
+./launch_v3_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY} --ssh_user ${EC2_SSH_USER} --ssh_key_name ${EC2_SSH_KEY_NAME} --ssh_priv_key_path ${EC2_SSH_PRIV_KEY} --region ${REGION} --instance_type ${DEFAULT_EC2_INSTANCE_TYPE}
 if [ "$?" -ne "0" ]; then
 	echo "Failed to run launch_stack.py"
 	exit 1

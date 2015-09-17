@@ -18,10 +18,6 @@
 - name: reload systemd
   action: shell systemctl daemon-reload
 
-- name: install rhua
-  action: shell export LANG=en_US.UTF-8 && export LANGUAGE=en_US.UTF-8 && export LC_ALL=en_US.UTF-8 && rhui-installer || true
-  notify: restart httpd
-
 # Note mongodb requires a few minutes to preallocate it's db files
 # We are starting mongodb now so while other tasks run it's DB files will be preallocated
 #- name: enable mongodb
