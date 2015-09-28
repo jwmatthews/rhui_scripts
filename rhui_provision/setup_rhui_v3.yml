@@ -69,8 +69,8 @@
 #    - name: Run adjust_hostname.sh on each instance
 #      command: sudo ./adjust_hostname_rhua.sh chdir=/home/ec2-user
 #
-- name: Adjust localhostname on CDSes
-  hosts: CDS_01:CDS_02
+- name: Adjust localhostname on CDS and HAProxy
+  hosts: CDS_01:CDS_02:HAPROXY_01:HAPROXY_02
   user: ec2-user
   sudo: yes
   tasks:
@@ -98,46 +98,65 @@
   hosts: RHUA
   user: ec2-user
   sudo: yes
+  vars: 
+    region: "{{ lookup('env', 'REGION') }}"
   tasks:
     - name: rhui-install
-      action: shell export LANG=en_US.UTF-8 && export LANGUAGE=en_US.UTF-8 && export LC_ALL=en_US.UTF-8 && rhui-installer --rhui-manager-password=admin --remote-fs-server {{ hostvars[groups['RHUA'][0]]['inventory_hostname'] }}:rhui_content --remote-fs-type glusterfs  || true
+      action: shell export LANG=en_US.UTF-8 && export LANGUAGE=en_US.UTF-8 && export LC_ALL=en_US.UTF-8 && rhui-installer --rhui-manager-password=admin --remote-fs-server {{ hostvars[groups['RHUA'][0]]['inventory_hostname'] }}:rhui_content --remote-fs-type glusterfs  --cds-lb-hostname rhui3-cds.{{ region }}.aws.ce.redhat.com || true
 
 - name: Add CDSes
   hosts: RHUA
   user: ec2-user
   sudo: yes
-  vars:
-      setup_dir: "./files/setup/remote_host"
+  #vars:
+  #    setup_dir: "./files/setup/remote_host"
   tasks:
-    - name: scp add_cds.sh script to each CDS instances
-      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
-      with_items:
-        - add_cds.sh
+    #- name: scp add_cds.sh script to each CDS instances
+    #  action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+    #  with_items:
+    #    - add_cds.sh
 
-    #- name: get desired CDS hostnames
-    #  shell: cat /home/ec2-user/desired_hostnames.env | grep "cds" | cut -f2 -d'=' | cut -f2 -d'"'
-    #  register: cds_hostname
-    
+    #- name: add CDS_01
+    #  shell: ./add_cds.sh {{ hostvars[groups['CDS_01'][0]]['inventory_hostname'] }} & 
+  
     #- name: wait 5mins
     #  shell: sleep 300
 
-    - name: add CDS_01
-      shell: ./add_cds.sh {{ hostvars[groups['CDS_01'][0]]['inventory_hostname'] }} & 
+    #- name: add CDS_02
+    #  shell: ./add_cds.sh {{ hostvars[groups['CDS_02'][0]]['inventory_hostname'] }} &
   
-    - name: wait 5mins
-      shell: sleep 300
+    #- name: wait 5mins
+    #  shell: sleep 300
+    
+    - name: add CDS_01 to key known_hosts
+      shell: ssh-keyscan {{ hostvars[groups['CDS_01'][0]]['inventory_hostname'] }} >> /root/.ssh/known_hosts
 
-    #- name: kill process
-    #  shell: ps ax | grep 'add_cds.sh' | grep -v "grep" | awk '{ print $1;}' | xargs kill -9
+    - name: add CDS_02 to key known_hosts
+      shell: ssh-keyscan {{ hostvars[groups['CDS_02'][0]]['inventory_hostname'] }} >> /root/.ssh/known_hosts
+    
+    - name: add CDS_01
+      shell: rhui --username admin --password admin cds add --hostfile /root/.ssh/known_hosts {{ hostvars[groups['CDS_01'][0]]['inventory_hostname'] }} root /root/.ssh/cds.rsa
 
     - name: add CDS_02
-      shell: ./add_cds.sh {{ hostvars[groups['CDS_02'][0]]['inventory_hostname'] }} &
-  
-    - name: wait 5mins
-      shell: sleep 300
+      shell: rhui --username admin --password admin cds add --hostfile /root/.ssh/known_hosts {{ hostvars[groups['CDS_02'][0]]['inventory_hostname'] }} root /root/.ssh/cds.rsa
 
-    #- name: kill process
-    #  shell: ps ax | grep 'add_cds.sh' | grep -v "grep" | awk '{ print $1;}' | xargs kill -9
+- name: Add HAProxy
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  tasks:
+    - name: add HAPROXY_01 key to known_hosts
+      shell: ssh-keyscan {{ hostvars[groups['HAPROXY_01'][0]]['inventory_hostname'] }} >> /root/.ssh/known_hosts
+
+    - name: add HAPROXY_02 key to known_hosts
+      shell: ssh-keyscan {{ hostvars[groups['HAPROXY_02'][0]]['inventory_hostname'] }} >> /root/.ssh/known_hosts
+
+    - name: add HAPROXY_01
+      shell: rhui --username admin --password admin haproxy add --hostfile /root/.ssh/known_hosts {{ hostvars[groups['HAPROXY_01'][0]]['inventory_hostname'] }} root /root/.ssh/cds.rsa
+
+    - name: add HAPROXY_02
+      shell: rhui --username admin --password admin haproxy add --hostfile /root/.ssh/known_hosts {{ hostvars[groups['HAPROXY_02'][0]]['inventory_hostname'] }} root /root/.ssh/cds.rsa
+
 
 #- name: Adjust hostname of each host
 #  hosts: CDS_01
@@ -332,14 +351,20 @@
   gather_facts: false
   vars:
     content_cert: "{{ lookup('env', 'CONTENT_CERT') }}"
-
+    setup_dir: "./files/setup/remote_host"
   tasks:
 
     - name: scp content certificate
       action: copy src="{{content_cert}}" dest="/root/content_cert.pem" owner=root group=root mode=0664
 
+    - name: scp upload_content_cert.sh script 
+      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
+      with_items:
+        - upload_content_cert.sh
+
     - name: upload content cert to rhui-manager
-      action: shell sudo rhui-manager --username admin --password admin cert upload --cert /root/content_cert.pem
+      #action: shell sudo rhui-manager --username admin --password admin cert upload --cert /root/content_cert.pem
+      shell: sudo ./upload_content_cert.sh /root/content_cert.pem
 
 
 - name: Create custom repos

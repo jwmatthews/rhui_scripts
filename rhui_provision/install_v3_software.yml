@@ -67,6 +67,13 @@
     - name: add ssh key
       shell: echo "{{ hostvars[groups['RHUA'][0]]['key'] }}" | sudo tee -a /root/.ssh/authorized_keys
 
+- name: Setup ssh-key on HAProxy
+  hosts: HAPROXY_01:HAPROXY_02
+  user: ec2-user
+  tasks:
+    - name: add ssh key
+      shell: echo "{{ hostvars[groups['RHUA'][0]]['key'] }}" | sudo tee -a /root/.ssh/authorized_keys
+
 - name: Install Packages for CDS
   hosts: RHUA
   user: ec2-user
