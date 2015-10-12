@@ -246,7 +246,53 @@
 #
 #    - include: tasks/rhua_copy_existing_certs.yml
 #      when: existing_cert_dir != ""
+#
+- name: Adjust certificates 
+  hosts: RHUA
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
 
+  tasks:
+    - include: tasks/rhua_copy_existing_certs.yml
+      when: existing_cert_dir != ""
+
+    - name: backup older certs 
+      shell: mv /etc/pki/rhui/certs/entitlement-ca.crt /etc/pki/rhui/certs/entitlement-ca.crt.backup
+      when: existing_cert_dir != ""
+
+    - name: backup older certs 
+      shell: mv /etc/puppet/rhui-secrets/pulp-global-repo.ca /etc/puppet/rhui-secrets/pulp-global-repo.ca.backup
+      when: existing_cert_dir != ""
+
+    - name: backup older cert key
+      shell: mv /etc/pki/rhui/private/entitlement-ca.key /etc/pki/rhui/private/entitlement-ca.key.backup
+      when: existing_cert_dir != ""
+
+    - name: copy new certs over 
+      shell: cp /home/ec2-user/rhui-certs/certs/entitlement-ca.crt /etc/pki/rhui/certs/entitlement-ca.crt
+      when: existing_cert_dir != ""
+
+    - name: copy new certs over 
+      shell: cp /home/ec2-user/rhui-certs/certs/entitlement-ca.crt /etc/puppet/rhui-secrets/pulp-global-repo.ca
+      when: existing_cert_dir != ""
+
+    - name: copy new cert key over 
+      shell: cp /home/ec2-user/rhui-certs/certs/entitlement-ca-key.pem /etc/pki/rhui/private/entitlement-ca.key
+      when: existing_cert_dir != ""
+
+- name: Update certificates 
+  hosts: CDS_01:CDS_02
+  user: ec2-user
+  sudo: yes
+  gather_facts: false
+
+  tasks:
+    - name: update cert via. puppet
+      shell: puppet agent --test || true
+
+    - name: restart httpd
+      shell: service httpd restart
 
 #- name: Execute rhui-installer on RHUA
 #  hosts: RHUA
