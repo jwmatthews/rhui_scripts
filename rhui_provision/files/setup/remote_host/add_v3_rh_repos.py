@@ -38,9 +38,16 @@ def read_json(filename, args):
         return {}
 
 def search_path(undeployed_repos, path):
+    candidate_list = {}
     for k, v in undeployed_repos.items():
         if path in k:
-            return v
+            #return v
+            percentage = float(len(path)) / float(len(k))
+            candidate_list[percentage] = v
+    if len(candidate_list.items()) != 0:
+        ol = list(reversed(sorted(candidate_list.items())))
+        best_matched = ol[0][1]
+        return best_matched
     return None
 
 def add_repo(data, username="admin", password="admin"):
@@ -67,6 +74,7 @@ def add_repo(data, username="admin", password="admin"):
             if matched_repo is not None:
                 print "Found %s in undeployed_repos.\n" % repo_path
                 if repo_rhua_enabled == '1':
+                    print 'Attempting to add %s to RHUA\n' % (matched_repo.label)
                     cert = certificate_manager.cert_for_entitlement(matched_repo.entitlement)
                     result = pulp_api.create_redhat_repo(matched_repo, cert.cert_filename, config.get('rhui', 'repo_sync_frequency'))
                     print 'Adding %s to RHUA is %s\n' % (matched_repo.label, result)
