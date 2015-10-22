@@ -269,6 +269,14 @@
       shell: mv /etc/pki/rhui/private/entitlement-ca.key /etc/pki/rhui/private/entitlement-ca.key.backup
       when: existing_cert_dir != ""
 
+    - name: backup older cert 
+      shell: mv /etc/puppet/rhui-secrets/cds-cert.crt /etc/puppet/rhui-secrets/cds-cert.crt.backup
+      when: existing_cert_dir != ""
+
+    - name: backup older cert key
+      shell: mv /etc/puppet/rhui-secrets/cds-cert.key /etc/puppet/rhui-secrets/cds-cert.key.backup
+      when: existing_cert_dir != ""
+
     - name: copy new certs over 
       shell: cp /home/ec2-user/rhui-certs/certs/entitlement-ca.crt /etc/pki/rhui/certs/entitlement-ca.crt
       when: existing_cert_dir != ""
@@ -279,6 +287,14 @@
 
     - name: copy new cert key over 
       shell: cp /home/ec2-user/rhui-certs/certs/entitlement-ca-key.pem /etc/pki/rhui/private/entitlement-ca.key
+      when: existing_cert_dir != ""
+
+    - name: copy new cert over 
+      shell: cp /home/ec2-user/rhui-certs/certs/rhui3-cds.us-east-1.aws.ce.redhat.com.crt /etc/puppet/rhui-secrets/cds-cert.crt
+      when: existing_cert_dir != ""
+
+    - name: copy new cert key over 
+      shell: cp /home/ec2-user/rhui-certs/certs/rhui3-cds.us-east-1.aws.ce.redhat.com.key /etc/puppet/rhui-secrets/cds-cert.key
       when: existing_cert_dir != ""
 
 - name: Update certificates 
