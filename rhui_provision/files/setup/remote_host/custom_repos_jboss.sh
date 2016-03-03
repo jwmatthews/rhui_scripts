@@ -66,10 +66,74 @@ EOQ
 cat <<EOQ | rhui-manager --username admin --password admin
 r
 c
+rhui-client-config-rhel-server-6-i386-jbeap-7
+Red Hat Update Infrastructure 2.0 Client Configuration Server 6 i386 JBoss EAP 7
+rhui-client-config/rhel/server/6/i386/jbeap/7
+2
+y
+rhui-client-config/rhel/server/6/i386/jbeap/7
+y
+n
+n
+y
+q
+EOQ
+
+cat <<EOQ | rhui-manager --username admin --password admin
+r
+c
+rhui-client-config-rhel-server-6-x86_64-jbeap-7
+Red Hat Update Infrastructure 2.0 Client Configuration Server 6 x86_64 JBoss EAP 7
+rhui-client-config/rhel/server/6/x86_64/jbeap/7
+2
+y
+rhui-client-config/rhel/server/6/x86_64/jbeap/7
+y
+n
+n
+y
+q
+EOQ
+
+cat <<EOQ | rhui-manager --username admin --password admin
+r
+c
+rhui-client-config-rhel-server-7-i386-jbeap-7
+Red Hat Update Infrastructure 2.0 Client Configuration Server 7 i386 JBoss EAP 7
+rhui-client-config/rhel/server/7/i386/jbeap/7
+1
+y
+rhui-client-config/rhel/server/7/i386/jbeap/7
+y
+n
+n
+y
+q
+EOQ
+
+cat <<EOQ | rhui-manager --username admin --password admin
+r
+c
+rhui-client-config-rhel-server-7-x86_64-jbeap-7
+Red Hat Update Infrastructure 2.0 Client Configuration Server 7 x86_64 JBoss EAP 7
+rhui-client-config/rhel/server/7/x86_64/jbeap/7
+1
+y
+rhui-client-config/rhel/server/7/x86_64/jbeap/7
+y
+n
+n
+y
+q
+EOQ
+
+cat <<EOQ | rhui-manager --username admin --password admin
+r
+c
 rhui-client-config-rhel-server-6-i386-jbews-1
 Red Hat Update Infrastructure 2.0 Client Configuration Server 6 i386 JBoss EWS 1
 rhui-client-config/rhel/server/6/i386/jbews/1
-2
+1
 y
 rhui-client-config/rhel/server/6/i386/jbews/1
 y
@@ -85,7 +149,7 @@ c
 rhui-client-config-rhel-server-6-x86_64-jbews-1
 Red Hat Update Infrastructure 2.0 Client Configuration Server 6 x86_64 JBoss EWS 1
 rhui-client-config/rhel/server/6/x86_64/jbews/1
-2
+1
 y
 rhui-client-config/rhel/server/6/x86_64/jbews/1
 y
