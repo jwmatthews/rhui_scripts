@@ -69,7 +69,7 @@ c
 rhui-client-config-rhel-server-6-i386-jbeap-7
 Red Hat Update Infrastructure 2.0 Client Configuration Server 6 i386 JBoss EAP 7
 rhui-client-config/rhel/server/6/i386/jbeap/7
-2
+1
 y
 rhui-client-config/rhel/server/6/i386/jbeap/7
 y
@@ -85,7 +85,7 @@ c
 rhui-client-config-rhel-server-6-x86_64-jbeap-7
 Red Hat Update Infrastructure 2.0 Client Configuration Server 6 x86_64 JBoss EAP 7
 rhui-client-config/rhel/server/6/x86_64/jbeap/7
-2
+1
 y
 rhui-client-config/rhel/server/6/x86_64/jbeap/7
 y
