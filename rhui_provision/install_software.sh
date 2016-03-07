@@ -32,7 +32,7 @@ if [ ! -z "$ISO_PATH" ]; then
   ISO_FILENAME=`echo $ISO_PATH | rev | cut -f1 -d'/' | rev`
 fi
 
-ansible-playbook install_v3_software.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${EC2_SSH_PRIV_KEY} --extra-vars "iso_path=$ISO_PATH rhui_iso_filename=$ISO_FILENAME" | tee ${LOG_DIR}/install_software.log
+ansible-playbook install_v2_software.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${EC2_SSH_PRIV_KEY} --extra-vars "iso_path=$ISO_PATH rhui_iso_filename=$ISO_FILENAME" | tee ${LOG_DIR}/install_software.log
 
 if [ ! -z "$PACKAGES" ]; then
     IFS=',' read -a array <<< "$PACKAGES"

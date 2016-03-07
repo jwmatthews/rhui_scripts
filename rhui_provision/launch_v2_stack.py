@@ -261,21 +261,6 @@ def run_cmd(ssh_client, cmd):
     if exit_code:
         raise Exception("Failed to run: '%s'\nExit Code of: %s" % (cmd, exit_code))
 
-def _install_lvm(ssh_client):
-    cmd = "sudo yum install -y lvm2.x86_64 rpcbind"
-    run_cmd(ssh_client, cmd)
-
-    # make sure lvmetad
-    cmd = "sudo sed -i s/use_lvmetad\ \=\ 1/use_lvmetad\ \=\ 0/ /etc/lvm/lvm.conf"
-    run_cmd(ssh_client, cmd)
-
-    # make sure lvmetad
-    cmd = "sudo systemctl restart lvm2-lvmetad.service"
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo systemctl restart lvm2-lvmetad.socket"
-    run_cmd(ssh_client, cmd)
-
 def _create_log_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
     # Creating the log partition requires that we:
     # - Mount new partition to a temp location
@@ -365,8 +350,6 @@ def setup_filesystem_on_host(instance_details, ssh_user, ssh_priv_key_path):
     if role.upper().startswith("CDS"):
         pulp_mountpoint = "/var/lib/pulp-cds"
 
-    _install_lvm(ssh_client)
-
     # Expected partitions
     # /dev/xvdm for /var/log
     # /dev/xvdn for /var/lib/mongodb 
@@ -374,10 +357,9 @@ def setup_filesystem_on_host(instance_details, ssh_user, ssh_priv_key_path):
     logging.info("Setting up /var/log on '%s'" % (dns_name))
     _create_log_part(ssh_client, blockdevice="/dev/xvdm", 
         vgname="vg0", lvname="var_log", mountpoint="/var/log")
-    if instance_details["tags"]["Role"] == "RHUA": # only RHUA have this partition
-        logging.info("Setting up /var/lib/mongodb on '%s'" % (dns_name))
-        _create_part(ssh_client, blockdevice="/dev/xvdn", 
-            vgname="vg1", lvname="var_mongodb", mountpoint="/var/lib/mongodb")
+    logging.info("Setting up /var/lib/mongodb on '%s'" % (dns_name))
+    _create_part(ssh_client, blockdevice="/dev/xvdn", 
+        vgname="vg1", lvname="var_mongodb", mountpoint="/var/lib/mongodb")
     logging.info("Setting up %s on '%s'" % (pulp_mountpoint, dns_name))
     _create_part(ssh_client, blockdevice="/dev/xvdp", 
         vgname="vg2", lvname="var_pulp", mountpoint=pulp_mountpoint)
