@@ -77,29 +77,29 @@ if [ "$?" -ne "0" ]; then
 	exit 1
 fi
 
-### Setup RHUI Block ###
-if [ ! -z "$EXISTING_CERT_DIR" ] && [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
-  ./setup_rhui.sh -d ${EXISTING_CERT_DIR} -r ${REPO_DATA_FILE} -c ${CLIENT_RPM_DIR}
-elif [ ! -z "$EXISTING_CERT_DIR" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
-  ./setup_rhui.sh -d ${EXISTING_CERT_DIR} -c ${CLIENT_RPM_DIR}
-elif [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
-  ./setup_rhui.sh -r ${REPO_DATA_FILE} -c ${CLIENT_RPM_DIR}
-elif [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$EXISTING_CERT_DIR" ]; then
-  ./setup_rhui.sh -r ${REPO_DATA_FILE} -d ${EXISTING_CERT_DIR}
-elif [ ! -z "$EXISTING_CERT_DIR" ]; then
-  ./setup_rhui.sh -d ${EXISTING_CERT_DIR}
-elif [ ! -z "$REPO_DATA_FILE" ]; then
-  ./setup_rhui.sh -r ${REPO_DATA_FILE}
-elif [ ! -z "$CLIENT_RPM_DIR" ]; then
-  ./setup_rhui.sh -c ${CLIENT_RPM_DIR}
-else
-  ./setup_rhui.sh
-fi
+#### Setup RHUI Block ###
+#if [ ! -z "$EXISTING_CERT_DIR" ] && [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
+#  ./setup_rhui.sh -d ${EXISTING_CERT_DIR} -r ${REPO_DATA_FILE} -c ${CLIENT_RPM_DIR}
+#elif [ ! -z "$EXISTING_CERT_DIR" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
+#  ./setup_rhui.sh -d ${EXISTING_CERT_DIR} -c ${CLIENT_RPM_DIR}
+#elif [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
+#  ./setup_rhui.sh -r ${REPO_DATA_FILE} -c ${CLIENT_RPM_DIR}
+#elif [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$EXISTING_CERT_DIR" ]; then
+#  ./setup_rhui.sh -r ${REPO_DATA_FILE} -d ${EXISTING_CERT_DIR}
+#elif [ ! -z "$EXISTING_CERT_DIR" ]; then
+#  ./setup_rhui.sh -d ${EXISTING_CERT_DIR}
+#elif [ ! -z "$REPO_DATA_FILE" ]; then
+#  ./setup_rhui.sh -r ${REPO_DATA_FILE}
+#elif [ ! -z "$CLIENT_RPM_DIR" ]; then
+#  ./setup_rhui.sh -c ${CLIENT_RPM_DIR}
+#else
+#  ./setup_rhui.sh
+#fi
 
-if [ "$?" -ne "0" ]; then
-	echo "Failed to run setup_rhui.sh"
-	exit 1
-fi
+#if [ "$?" -ne "0" ]; then
+#	echo "Failed to run setup_rhui.sh"
+#	exit 1
+#fi
 
 echo "RHUI has been setup on the below hosts"
 echo ""

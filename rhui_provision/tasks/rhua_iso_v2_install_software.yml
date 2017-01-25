@@ -1,6 +1,38 @@
-- name: install pulp
-  action: shell cd /mnt/rhui && ./install_RHUA.sh
-  notify: restart httpd
+#- wait_for:
+#  port: 22
+#  delay: 10
+
+#- name: make new folder
+#  shell: mkdir -p /tmp/rhui
+- name: copy
+  become: true
+  shell: cp -r /mnt/rhui/* /home/ec2-user/
+- name: chmod
+  become: true
+  shell: chmod a+x /home/ec2-user/install*
+- name: show
+  become: true
+  command: pwd
+- name: show
+  become: true
+  command: ls -larht
+- name: install 
+  become: true
+  shell: ./install_RHUA.sh
+  #args:
+  #  chdir: /tmp/rhui/
+  ignore_errors: true
+- name: install 
+  become: true
+  shell: ./install_tools.sh
+
+#- name: install pulp
+#  shell: cd /mnt/rhui && bash install_RHUA.sh
+#  ignore_errors: yes # this is to workaround ISO where install_RHUA.sh was not setup w/ +x permission
+
+# this is to workaround ISO where install_RHUA.sh was not setup w/ +x permission
+#- name: install tools
+#  shell: cd /mnt/rhui && bash install_tools.sh
 
 # Note mongodb requires a few minutes to preallocate it's db files
 # We are starting mongodb now so while other tasks run it's DB files will be preallocated
@@ -11,10 +43,10 @@
 # TODO: Investigate if this install rhui-tools block is still needed
 # I don't think below is needed, install_RHUA.sh will invoke ./install_tools.
 # 
-- name: install rhui-tools
-  action: yum name={{item}} state=latest
-  with_items:
-   - rh-rhui-tools
+#- name: install rhui-tools
+#  action: yum name={{item}} state=latest
+#  with_items:
+#   - rh-rhui-tools
 
 - name: Create NSS certificates for qpid
   command: /usr/bin/nss-db-gen

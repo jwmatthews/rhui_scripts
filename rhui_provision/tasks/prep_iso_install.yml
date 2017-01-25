@@ -11,7 +11,7 @@
 #  action: shell cd /mnt/rhui && ./setup_package_repos --nogpgsigs # TODO: This needs to be removed for production ISOs
   
 - name: install util rpms
-  command: sudo yum install -y {{item}}
+  shell: sudo yum install -y {{item}}
   with_items:
    - bind-utils
 

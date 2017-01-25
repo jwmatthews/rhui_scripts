@@ -1,4 +1,26 @@
 ---
+- name: Update Environment To Enable Package Installation
+  hosts: RHUA:CDS_01:CDS_02
+  user: ec2-user
+  sudo: yes
+  gather_facts: true
+
+  tasks:
+    - name: disable rh-common repo
+      shell: yum-config-manager --disable rhui-REGION-rhel-server-rh-common 
+
+    - name: copy rhui-lb.py
+      action: copy src="./files/setup/remote_host/rhui-lb.py" dest="/home/ec2-user/rhui-lb.py" owner=root mode=0644
+    
+    - name: update rhui-lb.py
+      replace: dest="/home/ec2-user/rhui-lb.py" regexp='REGION' replace='{{ region }}'
+    
+    - name: backup original copy of rhui-lb.py
+      shell: cp /usr/lib/yum-plugins/rhui-lb.py /usr/lib/yum-plugins/rhui-lb.py.backup
+    
+    - name: install new rhui-lb.py
+      shell: cp /home/ec2-user/rhui-lb.py /usr/lib/yum-plugins/
+      
 - name: Install Common Packages for both RHUA & CDS
   hosts: RHUA:CDS_01:CDS_02
   user: ec2-user
@@ -18,11 +40,11 @@
         - bashrc
         - vimrc
 
-    - include: tasks/prep_repo_install.yml
-      when: iso_path == ""
-
     - include: tasks/prep_iso_install.yml
       when: iso_path != ""
+
+    - include: tasks/prep_repo_install.yml
+      when: iso_path == ""
 
 - name: Install Packages for RHUA
   hosts: RHUA
@@ -34,12 +56,12 @@
     - rhui_build_host: ec2-50-17-26-28.compute-1.amazonaws.com
 
   tasks:
+    - include: tasks/rhua_iso_v2_install_software.yml
+      when: iso_path != ""
+
     - include: tasks/rhua_repo_install_software.yml
       when: iso_path == ""
 
-    - include: tasks/rhua_iso_v2_install_software.yml
-      when: iso_path != ""
-  handlers:
     - name: restart httpd
       action: service name=httpd state=restarted
 

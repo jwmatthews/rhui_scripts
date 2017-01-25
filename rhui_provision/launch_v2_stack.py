@@ -12,6 +12,7 @@ import getpass
 import logging
 import os
 import random
+import paramiko
 import string
 import sys
 import threading
@@ -20,10 +21,12 @@ import yaml
 from datetime import datetime
 from optparse import OptionParser
 
-from boto import cloudformation
-from boto import regioninfo
-from boto import ec2
-from boto.manage.cmdshell import sshclient_from_instance
+#from boto import cloudformation
+#from boto import regioninfo
+#from boto import ec2
+#from boto.manage.cmdshell import sshclient_from_instance
+
+import boto3
 
 def read_env(var, default_value=None):
     if os.environ.has_key(var):
@@ -33,7 +36,7 @@ def read_env(var, default_value=None):
 
 DEFAULT_AWS_ACCESS_KEY_ID=read_env("AWS_ACCESS_KEY_ID")
 DEFAULT_AWS_SECRET_ACCESS_KEY=read_env("AWS_SECRET_ACCESS_KEY")
-DEFAULT_INSTANCE_TYPE="m1.large"
+DEFAULT_INSTANCE_TYPE="m4.2xlarge"
 DEFAULT_REGION=read_env("REGION", "us-east-1")
 DEFAULT_SSH_USER="ec2-user"
 DEFAULT_SSH_KEY_NAME="splice"
@@ -95,7 +98,7 @@ def get_stack_id():
     return stack_id   
 
 def get_connections(region_name, aws_access_key_id, aws_secret_access_key):
-    con_ec2 = ec2.connect_to_region(region_name,
+    con_ec2 = boto3.client('ec2', region_name, 
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key)
     if not con_ec2:
@@ -106,10 +109,9 @@ def get_connections(region_name, aws_access_key_id, aws_secret_access_key):
     if not region:
         raise Exception("Unable to connect to region: " + region_name)
 
-    con_cf = cloudformation.connection.CloudFormationConnection(
+    con_cf = boto3.client('cloudformation', region_name, 
         aws_access_key_id=aws_access_key_id,
-        aws_secret_access_key=aws_secret_access_key,
-        region=region)
+        aws_secret_access_key=aws_secret_access_key)
     if not con_cf:
         raise exception("Unable to create cloudformation connection to: " + region_name)
     return (con_ec2, con_cf)
@@ -119,9 +121,9 @@ def create_cloudformation(con_cf, json_body, parameters, stack_id, timeout):
     Launches a CloudFormation file and returns a list of the associated instances
     """
     logging.info("Creating stack with ID: " + stack_id)
-    con_cf.create_stack(stack_id, template_body=json_body,
-                    parameters=parameters, timeout_in_minutes=timeout,
-                    disable_rollback=True)
+    con_cf.create_stack(StackName=stack_id, TemplateBody=json_body,
+                    Parameters=parameters, TimeoutInMinutes=timeout,
+                    DisableRollback=True)
 
     is_complete = False
     result = False
@@ -129,14 +131,14 @@ def create_cloudformation(con_cf, json_body, parameters, stack_id, timeout):
         logging.info("Waiting for cloud formation stack to come up....")
         time.sleep(30)
         try:
-            for event in con_cf.describe_stack_events(stack_id):
-                logging.info("StackEvent: %s %s %s" % (event, event.resource_type, event.resource_status))
-                if event.resource_type == "AWS::CloudFormation::Stack" and event.resource_status == "CREATE_COMPLETE":
+            for event in con_cf.describe_stack_events(StackName=stack_id)["StackEvents"]:
+                logging.info("StackEvent: %s %s %s" % (event, event["ResourceType"], event["ResourceStatus"]))
+                if event["ResourceType"] == "AWS::CloudFormation::Stack" and event["ResourceStatus"] == "CREATE_COMPLETE":
                     logging.info("Stack creation completed")
                     is_complete = True
                     result = True
                     #break
-                if event.resource_status == "ROLLBACK_COMPLETE" or event.resource_status == "CREATE_FAILED":
+                if event["ResourceStatus"] == "ROLLBACK_COMPLETE" or event["ResourceStatus"] == "CREATE_FAILED":
                     logging.info("Stack creation failed: %s" % (event))
                     logging.info(event)
                     is_complete = True
@@ -147,34 +149,44 @@ def create_cloudformation(con_cf, json_body, parameters, stack_id, timeout):
         raise Exception("Cloud Formation stack '%s' did not come up as expected." % (stack_id))
 
     instance_ids = []
-    for res in con_cf.describe_stack_resources(stack_id):
-        if res.resource_type == 'AWS::EC2::Instance' and res.physical_resource_id:
-            logging.debug("Instance " + res.physical_resource_id + " created")
-            instance_ids.append(res.physical_resource_id)
+    for res in con_cf.describe_stack_resources(StackName=stack_id)["StackResources"]:
+        if res["ResourceType"] == 'AWS::EC2::Instance' and res["PhysicalResourceId"]:
+            logging.debug("Instance " + res["PhysicalResourceId"] + " created")
+            instance_ids.append(res["PhysicalResourceId"])
     return instance_ids
 
 def get_instances(con_ec2, instance_ids):
-    return con_ec2.get_only_instances(instance_ids)
+    instances = []
+    reservations = con_ec2.describe_instances(InstanceIds=instance_ids)["Reservations"]
+    for res in reservations:
+    	instances += res["Instances"]
+    return instances
 
 def get_instance_details(instances):
-    keys = ["public_dns_name", "state", "state_code", "ip_address", 
-        "instance_type", "key_name", "launch_time", "tags", "block_device_mapping"]
+    #keys = ["PublicDnsName", "State", "PublicIpAddress", 
+    keys = ["PublicIpAddress", "State", "PublicIpAddress", 
+        "InstanceType", "KeyName", "LaunchTime", "BlockDeviceMappings"]
     details = {}
     for inst in instances:
         info = {}
         for k in keys:
-            info[k] = getattr(inst, k)
+            info[k] = inst[k]
         info["instance"] = inst
-        if not info["tags"].has_key("Role"):
-            info["tags"]["Role"] = "Unknown"
-        details[info["public_dns_name"]] = info
+        info["Tags"] = {}
+        for tag in inst["Tags"]:
+            if tag["Key"] == "Role":
+            	info["Tags"]["Role"] = tag["Value"]
+
+        if not info["Tags"].has_key("Role"):
+            info["Tags"]["Role"] = "Unknown"
+        details[info["PublicIpAddress"]] = info
     return details
 
 def write_bash_env(stack_id, instance_details, out_file):
     data = "STACK_ID=%s\n" % (stack_id)
     for inst in instance_details.values():
-        dns_name = inst["public_dns_name"]
-        role = inst["tags"]["Role"]
+        dns_name = inst["PublicIpAddress"]
+        role = inst["Tags"]["Role"]
         data += "%s=%s\n" % (role, dns_name)
     f = open(out_file, "w")
     try:
@@ -186,9 +198,9 @@ def write_yaml_conf(stack_id, instance_details, out_file):
     data = {}
     data["STACK_ID"] = stack_id
     for inst in instance_details.values():
-        role = inst["tags"]["Role"]
+        role = inst["Tags"]["Role"]
         data[role] = {}
-        dns_name = inst["public_dns_name"]
+        dns_name = inst["PublicIpAddress"]
         data[role]["hostname"] = dns_name
     f = open(out_file, "w")
     try:
@@ -199,8 +211,8 @@ def write_yaml_conf(stack_id, instance_details, out_file):
 def write_ansible_inventory(instance_details, out_file):
     data = "localhost\n"
     for inst in instance_details.values():
-        dns_name = inst["public_dns_name"]
-        role = inst["tags"]["Role"]
+        dns_name = inst["PublicIpAddress"]
+        role = inst["Tags"]["Role"]
         #Note:
         # The supplied cloud formation JSON file needs
         # a tag of "Role" for each instance provisioned
@@ -245,19 +257,35 @@ def wait_for_ssh(hostnames, ssh_user, ssh_priv_key_path, timeout_in_minutes=120)
         logging.info("SSH is up on: %s" % (hostname))
     return True
 
+def wait_for_instance_ready(hostnames, details, timeout_in_minutes=120):
+    # Loop through instances and wait till it's in "running" state
+    for hostname in hostnames:
+        instance = details[hostname]["instance"]
+        logging.info("Waiting for ready state on %s" % (instance["PublicIpAddress"]))
+        success = False
+        start = time.time()
+        while True:
+            if instance["State"]["Name"] == "running":
+                success = True
+                break
+            elif (time.time()-start)/60.0 > timeout_in_minutes:
+                logging.error("State did not turn ready '%s' within %s minutes" % (hostname, timeout_in_minutes))
+                break
+            time.sleep(1)
+        if not success:
+            # Break out of the for loop, an instance didn't respond to SSH
+            return False
+        logging.info("%s is ready." % (hostname))
+    return True
+
+
 def run_cmd(ssh_client, cmd):
     # We need to run with a pty so 'sudo' commands will work.
     output = ""
-    logging.info("Running: '%s' on '%s'" % (cmd, ssh_client.server.hostname))
-    channel = ssh_client.run_pty(cmd)
-    while True:
-        if channel.recv_ready():
-            output += channel.recv(65536)
-        if channel.exit_status_ready():
-            exit_code = channel.recv_exit_status()
-            channel.close()
-            break
-    logging.info("Completed: '%s' on '%s'\nExit Code: %s\nOutput: %s" % (cmd, ssh_client.server.hostname, exit_code, output))
+    logging.info("Running: '%s'" % (cmd))
+    stdin, stdout, stderr = ssh_client.exec_command('ls -l')
+    exit_code = stdout.channel.recv_exit_status()
+    logging.info("Completed: '%s' \nExit Code: %s\nOutput: %s" % (cmd, exit_code, output))
     if exit_code:
         raise Exception("Failed to run: '%s'\nExit Code of: %s" % (cmd, exit_code))
 
@@ -340,12 +368,15 @@ def _create_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
     run_cmd(ssh_client, cmd)
 
 def setup_filesystem_on_host(instance_details, ssh_user, ssh_priv_key_path):
-    dns_name = instance_details["public_dns_name"]
-    role = instance_details["tags"]["Role"]
+    dns_name = instance_details["PublicIpAddress"]
+    role = instance_details["Tags"]["Role"]
     logging.info("Setting up LVM filesystems on '%s' which is a '%s'" % (dns_name, role))
 
-    ssh_client = sshclient_from_instance(instance_details["instance"], 
-        ssh_key_file=ssh_priv_key_path, user_name=ssh_user)
+    #ssh_client = sshclient_from_instance(instance_details["instance"], 
+    #    ssh_key_file=ssh_priv_key_path, user_name=ssh_user)
+    ssh_client = paramiko.SSHClient()
+    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh_client.connect(hostname=instance_details["instance"]["PublicIpAddress"], key_filename=ssh_priv_key_path, username=ssh_user)
     pulp_mountpoint = "/var/lib/pulp"        
     if role.upper().startswith("CDS"):
         pulp_mountpoint = "/var/lib/pulp-cds"
@@ -406,13 +437,13 @@ if __name__ == "__main__":
         logging.info("Please re-run with --template argument set")
         sys.exit(1)
 
-    con_ec2, con_cf = get_connections(region_name=region_name, 
-        aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+    con_ec2 = boto3.client('ec2', region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
+    con_cf = boto3.client('cloudformation', region_name, aws_access_key_id=aws_access_key_id, aws_secret_access_key=aws_secret_access_key)
 
     # Launch EC-2 resources
     cloud_form_json_body = read_file(cloudformfile)
     stack_id = get_stack_id()
-    parameters = [("KeyName", ssh_key_name), ("OwnerName",user_name), ("InstanceType",instance_type)]
+    parameters = [{"ParameterKey": "KeyName", "ParameterValue": ssh_key_name}, {"ParameterKey": "OwnerName", "ParameterValue": user_name}, {"ParameterKey": "InstanceType", "ParameterValue": instance_type}]
     instance_ids = create_cloudformation(con_cf=con_cf,
         json_body=cloud_form_json_body,
         parameters=parameters,
@@ -425,19 +456,23 @@ if __name__ == "__main__":
 
     instances = get_instances(con_ec2, instance_ids)
     details = get_instance_details(instances)
-    hostnames = [x["public_dns_name"] for x in details.values()]
+    hostnames = [x["PublicIpAddress"] for x in details.values()]
     write_ansible_inventory(details, ans_out_file)
     #write_yaml_conf(stack_id, details, yaml_out_file)
     write_bash_env(stack_id, details, bash_out_file)
 
     logging.info("Will wait for SSH to come up for below instances:")
     for inst_details in details.values():
-        keys = ["public_dns_name", "launch_time", "key_name", "ip_address", "instance_type"]
+        #keys = ["PublicDnsName", "LaunchTime", "KeyName", "PublicIpAddress", "InstanceType"]
+        keys = ["PublicIpAddress", "LaunchTime", "KeyName", "PublicIpAddress", "InstanceType"]
         for k in keys:
             logging.info("\t%s: %s" % (k, inst_details[k]))
         logging.info("\n")
     if not wait_for_ssh(hostnames, ssh_user, ssh_priv_key_path):
         logging.error("\n***Stack is not complete, problem with SSH on an instance.***\n")
+        sys.exit(1)
+    if not wait_for_instance_ready(hostnames, details):
+        logging.error("\n***Stack is not complete, problem with instance turning to ready state.***\n")
         sys.exit(1)
 
     setup_filesystems(details, ssh_user, ssh_priv_key_path)
@@ -445,8 +480,8 @@ if __name__ == "__main__":
     logging.info("StackID: %s" % (stack_id))
     end = time.time()
     for instance_details in details.values():
-        dns_name = instance_details["public_dns_name"]
-        role = instance_details["tags"]["Role"]
+        dns_name = instance_details["PublicIpAddress"]
+        role = instance_details["Tags"]["Role"]
         print "%s = %s" % (role, dns_name)
     logging.info("Completed creation of Cloud Formation Stack from: %s in %s seconds" % (cloudformfile, (end-start)))
     logging.info("Ansible inventory file written to: %s" % (ans_out_file))
