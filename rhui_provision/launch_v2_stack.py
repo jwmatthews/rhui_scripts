@@ -163,8 +163,8 @@ def get_instances(con_ec2, instance_ids):
     return instances
 
 def get_instance_details(instances):
-    #keys = ["PublicDnsName", "State", "PublicIpAddress", 
-    keys = ["PublicIpAddress", "State", "PublicIpAddress", 
+    #keys = ["PublicIpAddress", "State", "PublicIpAddress", 
+    keys = ["PublicDnsName", "State", "PublicIpAddress", 
         "InstanceType", "KeyName", "LaunchTime", "BlockDeviceMappings"]
     details = {}
     for inst in instances:
@@ -179,13 +179,13 @@ def get_instance_details(instances):
 
         if not info["Tags"].has_key("Role"):
             info["Tags"]["Role"] = "Unknown"
-        details[info["PublicIpAddress"]] = info
+        details[info["PublicDnsName"]] = info
     return details
 
 def write_bash_env(stack_id, instance_details, out_file):
     data = "STACK_ID=%s\n" % (stack_id)
     for inst in instance_details.values():
-        dns_name = inst["PublicIpAddress"]
+        dns_name = inst["PublicDnsName"]
         role = inst["Tags"]["Role"]
         data += "%s=%s\n" % (role, dns_name)
     f = open(out_file, "w")
@@ -200,7 +200,7 @@ def write_yaml_conf(stack_id, instance_details, out_file):
     for inst in instance_details.values():
         role = inst["Tags"]["Role"]
         data[role] = {}
-        dns_name = inst["PublicIpAddress"]
+        dns_name = inst["PublicDnsName"]
         data[role]["hostname"] = dns_name
     f = open(out_file, "w")
     try:
@@ -211,7 +211,7 @@ def write_yaml_conf(stack_id, instance_details, out_file):
 def write_ansible_inventory(instance_details, out_file):
     data = "localhost\n"
     for inst in instance_details.values():
-        dns_name = inst["PublicIpAddress"]
+        dns_name = inst["PublicDnsName"]
         role = inst["Tags"]["Role"]
         #Note:
         # The supplied cloud formation JSON file needs
@@ -261,7 +261,7 @@ def wait_for_instance_ready(hostnames, details, timeout_in_minutes=120):
     # Loop through instances and wait till it's in "running" state
     for hostname in hostnames:
         instance = details[hostname]["instance"]
-        logging.info("Waiting for ready state on %s" % (instance["PublicIpAddress"]))
+        logging.info("Waiting for ready state on %s" % (instance["PublicDnsName"]))
         success = False
         start = time.time()
         while True:
@@ -368,7 +368,7 @@ def _create_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
     run_cmd(ssh_client, cmd)
 
 def setup_filesystem_on_host(instance_details, ssh_user, ssh_priv_key_path):
-    dns_name = instance_details["PublicIpAddress"]
+    dns_name = instance_details["PublicDnsName"]
     role = instance_details["Tags"]["Role"]
     logging.info("Setting up LVM filesystems on '%s' which is a '%s'" % (dns_name, role))
 
@@ -376,7 +376,7 @@ def setup_filesystem_on_host(instance_details, ssh_user, ssh_priv_key_path):
     #    ssh_key_file=ssh_priv_key_path, user_name=ssh_user)
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh_client.connect(hostname=instance_details["instance"]["PublicIpAddress"], key_filename=ssh_priv_key_path, username=ssh_user)
+    ssh_client.connect(hostname=instance_details["instance"]["PublicDnsName"], key_filename=ssh_priv_key_path, username=ssh_user)
     pulp_mountpoint = "/var/lib/pulp"        
     if role.upper().startswith("CDS"):
         pulp_mountpoint = "/var/lib/pulp-cds"
@@ -456,15 +456,15 @@ if __name__ == "__main__":
 
     instances = get_instances(con_ec2, instance_ids)
     details = get_instance_details(instances)
-    hostnames = [x["PublicIpAddress"] for x in details.values()]
+    hostnames = [x["PublicDnsName"] for x in details.values()]
     write_ansible_inventory(details, ans_out_file)
     #write_yaml_conf(stack_id, details, yaml_out_file)
     write_bash_env(stack_id, details, bash_out_file)
 
     logging.info("Will wait for SSH to come up for below instances:")
     for inst_details in details.values():
-        #keys = ["PublicDnsName", "LaunchTime", "KeyName", "PublicIpAddress", "InstanceType"]
-        keys = ["PublicIpAddress", "LaunchTime", "KeyName", "PublicIpAddress", "InstanceType"]
+        keys = ["PublicDnsName", "LaunchTime", "KeyName", "PublicIpAddress", "InstanceType"]
+        #keys = ["PublicIpAddress", "LaunchTime", "KeyName", "PublicIpAddress", "InstanceType"]
         for k in keys:
             logging.info("\t%s: %s" % (k, inst_details[k]))
         logging.info("\n")
@@ -480,7 +480,7 @@ if __name__ == "__main__":
     logging.info("StackID: %s" % (stack_id))
     end = time.time()
     for instance_details in details.values():
-        dns_name = instance_details["PublicIpAddress"]
+        dns_name = instance_details["PublicDnsName"]
         role = instance_details["Tags"]["Role"]
         print "%s = %s" % (role, dns_name)
     logging.info("Completed creation of Cloud Formation Stack from: %s in %s seconds" % (cloudformfile, (end-start)))
