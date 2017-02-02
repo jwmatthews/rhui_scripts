@@ -57,7 +57,7 @@ def parse_args():
     parser.add_option('--template',
         default=None, help='Path to AWS Cloud Formation template file in JSON Format')
     # Optional parameters
-    parser.add_option('--debug', action='store_true', 
+    parser.add_option('--debug', action='store_true',
         default=False, help='debug mode')
     parser.add_option('--ssh_user',
         default=DEFAULT_SSH_USER, help='Username to use when sshing to remote host, defaults to %s' % (DEFAULT_SSH_USER))
@@ -73,11 +73,11 @@ def parse_args():
         default=DEFAULT_REGION, help='use specified region')
     parser.add_option('--timeout', type=int,
         default=120, help='stack creation timeout')
-    parser.add_option('--ans_out_file', 
+    parser.add_option('--ans_out_file',
         default="provisioned_instances.ansible", help="Filename to store ansible ec2 inventory information representing provisioned instances")
-    parser.add_option('--bash_out_file', 
+    parser.add_option('--bash_out_file',
         default="hostnames.env", help="Filename to write hostnames that have provisioned and their role.")
-    parser.add_option('--yaml_out_file', 
+    parser.add_option('--yaml_out_file',
         default="provisioned_stack.yaml", help="Filename to write YAML info about provisioned cloud formation stack.")
     parser.add_option('--instance_type',
         default=DEFAULT_INSTANCE_TYPE, help="AWS EC2 Instance type for launched instances, defaults to %s" % (DEFAULT_INSTANCE_TYPE))
@@ -95,10 +95,10 @@ def get_stack_id():
     random_str = ''.join(random.choice(string.ascii_lowercase) for x in range(10))
     date_str = datetime.now().strftime("%Y%m%d")
     stack_id = "%sRHUIStack%s%s" % (get_user(), date_str, random_str)
-    return stack_id   
+    return stack_id
 
 def get_connections(region_name, aws_access_key_id, aws_secret_access_key):
-    con_ec2 = boto3.client('ec2', region_name, 
+    con_ec2 = boto3.client('ec2', region_name,
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key)
     if not con_ec2:
@@ -109,7 +109,7 @@ def get_connections(region_name, aws_access_key_id, aws_secret_access_key):
     if not region:
         raise Exception("Unable to connect to region: " + region_name)
 
-    con_cf = boto3.client('cloudformation', region_name, 
+    con_cf = boto3.client('cloudformation', region_name,
         aws_access_key_id=aws_access_key_id,
         aws_secret_access_key=aws_secret_access_key)
     if not con_cf:
@@ -163,8 +163,8 @@ def get_instances(con_ec2, instance_ids):
     return instances
 
 def get_instance_details(instances):
-    #keys = ["PublicIpAddress", "State", "PublicIpAddress", 
-    keys = ["PublicDnsName", "State", "PublicIpAddress", 
+    #keys = ["PublicIpAddress", "State", "PublicIpAddress",
+    keys = ["PublicDnsName", "State", "PublicIpAddress",
         "InstanceType", "KeyName", "LaunchTime", "BlockDeviceMappings"]
     details = {}
     for inst in instances:
@@ -283,7 +283,7 @@ def run_cmd(ssh_client, cmd):
     # We need to run with a pty so 'sudo' commands will work.
     output = ""
     logging.info("Running: '%s'" % (cmd))
-    stdin, stdout, stderr = ssh_client.exec_command('ls -l')
+    stdin, stdout, stderr = ssh_client.exec_command(cmd)
     exit_code = stdout.channel.recv_exit_status()
     logging.info("Completed: '%s' \nExit Code: %s\nOutput: %s" % (cmd, exit_code, output))
     if exit_code:
@@ -303,7 +303,7 @@ def _create_log_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
     cmd = "sudo lvcreate -l 100%%FREE -n %s %s" % (lvname, vgname)
     run_cmd(ssh_client, cmd)
 
-    cmd = "sudo /sbin/mkfs.ext3 -q /dev/%s/%s" % (vgname, lvname)
+    cmd = "sudo /sbin/mkfs.ext4 -q /dev/%s/%s" % (vgname, lvname)
     run_cmd(ssh_client, cmd)
 
     cmd = "sudo mkdir /var/log.new"
@@ -324,13 +324,13 @@ def _create_log_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
     cmd = "sudo mv /var/log.new /var/log"
     run_cmd(ssh_client, cmd)
 
-    cmd = "echo '/dev/%s/%s %s ext3 defaults 0 0' | sudo tee -a /etc/fstab" % (vgname, lvname, mountpoint)
+    cmd = "echo '/dev/%s/%s %s ext4 defaults 0 0' | sudo tee -a /etc/fstab" % (vgname, lvname, mountpoint)
     run_cmd(ssh_client, cmd)
 
     cmd = "sudo mount %s" % (mountpoint)
     run_cmd(ssh_client, cmd)
 
-    # 'service httpd restart' was failing with: 
+    # 'service httpd restart' was failing with:
     #  Starting httpd: (13)Permission denied: httpd: could not open error log file /etc/httpd/logs/error_log.
     #  Unable to open logs
     #
@@ -353,7 +353,7 @@ def _create_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
     cmd = "sudo lvcreate -l 100%%FREE -n %s %s" % (lvname, vgname)
     run_cmd(ssh_client, cmd)
 
-    cmd = "sudo /sbin/mkfs.ext3 -q /dev/%s/%s" % (vgname, lvname)
+    cmd = "sudo /sbin/mkfs.ext4 -q /dev/%s/%s" % (vgname, lvname)
     run_cmd(ssh_client, cmd)
 
     cmd = "sudo mkdir %s" % (mountpoint)
@@ -361,7 +361,7 @@ def _create_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
 
     # we can't run: sudo echo 'something' >> /etc/fstab.txt
     # so we are using 'tee' in place of echo
-    cmd = "echo '/dev/%s/%s %s ext3 defaults 0 0' | sudo tee -a /etc/fstab" % (vgname, lvname, mountpoint)
+    cmd = "echo '/dev/%s/%s %s ext4 defaults 0 0' | sudo tee -a /etc/fstab" % (vgname, lvname, mountpoint)
     run_cmd(ssh_client, cmd)
 
     cmd = "sudo mount %s" % (mountpoint)
@@ -372,32 +372,32 @@ def setup_filesystem_on_host(instance_details, ssh_user, ssh_priv_key_path):
     role = instance_details["Tags"]["Role"]
     logging.info("Setting up LVM filesystems on '%s' which is a '%s'" % (dns_name, role))
 
-    #ssh_client = sshclient_from_instance(instance_details["instance"], 
+    #ssh_client = sshclient_from_instance(instance_details["instance"],
     #    ssh_key_file=ssh_priv_key_path, user_name=ssh_user)
     ssh_client = paramiko.SSHClient()
     ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh_client.connect(hostname=instance_details["instance"]["PublicDnsName"], key_filename=ssh_priv_key_path, username=ssh_user)
-    pulp_mountpoint = "/var/lib/pulp"        
+    pulp_mountpoint = "/var/lib/pulp"
     if role.upper().startswith("CDS"):
         pulp_mountpoint = "/var/lib/pulp-cds"
 
     # Expected partitions
     # /dev/xvdm for /var/log
-    # /dev/xvdn for /var/lib/mongodb 
+    # /dev/xvdn for /var/lib/mongodb
     # /dev/xvdp for /var/lib/pulp or /var/lib/pulp-cds
     logging.info("Setting up /var/log on '%s'" % (dns_name))
-    _create_log_part(ssh_client, blockdevice="/dev/xvdm", 
+    _create_log_part(ssh_client, blockdevice="/dev/xvdm",
         vgname="vg0", lvname="var_log", mountpoint="/var/log")
     logging.info("Setting up /var/lib/mongodb on '%s'" % (dns_name))
-    _create_part(ssh_client, blockdevice="/dev/xvdn", 
+    _create_part(ssh_client, blockdevice="/dev/xvdn",
         vgname="vg1", lvname="var_mongodb", mountpoint="/var/lib/mongodb")
     logging.info("Setting up %s on '%s'" % (pulp_mountpoint, dns_name))
-    _create_part(ssh_client, blockdevice="/dev/xvdp", 
+    _create_part(ssh_client, blockdevice="/dev/xvdp",
         vgname="vg2", lvname="var_pulp", mountpoint=pulp_mountpoint)
 
 def setup_filesystems(inst_details, ssh_user, ssh_priv_key_path):
     # Will create a thread per instance so filesystem setup may happen in parallel
-    # Steps are executed in parallel to minimize the impact of 
+    # Steps are executed in parallel to minimize the impact of
     #  mkfs commands which take several minutes per filesystem
     #
     # TODO:  Add ability to capture errors from a thread and quit execution of entire script.
@@ -486,4 +486,3 @@ if __name__ == "__main__":
     logging.info("Completed creation of Cloud Formation Stack from: %s in %s seconds" % (cloudformfile, (end-start)))
     logging.info("Ansible inventory file written to: %s" % (ans_out_file))
     logging.info("Bash hostnames.env file written to: %s" % (bash_out_file))
-

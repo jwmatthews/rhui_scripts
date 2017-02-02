@@ -55,7 +55,7 @@ while getopts ":p:,:i:,:d:,:r:,:c:,:h" opt; do
     esac
 done
 
-./launch_v2_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY} --ssh_user ${EC2_SSH_USER} --ssh_key_name ${EC2_SSH_KEY_NAME} --ssh_priv_key_path ${EC2_SSH_PRIV_KEY} --region ${REGION} --instance_type ${DEFAULT_EC2_INSTANCE_TYPE}
+./launch_v2_stack.py --template ${CLOUD_FORMATION_TEMPLATE} --bash_out_file ${HOSTNAMES_ENV} --ans_out_file ${ANSIBLE_INVENTORY} --ssh_user ${EC2_SSH_USER} --ssh_key_name ${EC2_SSH_KEY_NAME} --ssh_priv_key_path ${EC2_SSH_PRIV_KEY} --region ${REGION} --instance_type ${DEFAULT_EC2_INSTANCE_TYPE} | tee /tmp/launch_v2_stack.log
 if [ "$?" -ne "0" ]; then
 	echo "Failed to run launch_stack.py"
 	exit 1
@@ -78,28 +78,28 @@ if [ "$?" -ne "0" ]; then
 fi
 
 #### Setup RHUI Block ###
-#if [ ! -z "$EXISTING_CERT_DIR" ] && [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
-#  ./setup_rhui.sh -d ${EXISTING_CERT_DIR} -r ${REPO_DATA_FILE} -c ${CLIENT_RPM_DIR}
-#elif [ ! -z "$EXISTING_CERT_DIR" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
-#  ./setup_rhui.sh -d ${EXISTING_CERT_DIR} -c ${CLIENT_RPM_DIR}
-#elif [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
-#  ./setup_rhui.sh -r ${REPO_DATA_FILE} -c ${CLIENT_RPM_DIR}
-#elif [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$EXISTING_CERT_DIR" ]; then
-#  ./setup_rhui.sh -r ${REPO_DATA_FILE} -d ${EXISTING_CERT_DIR}
-#elif [ ! -z "$EXISTING_CERT_DIR" ]; then
-#  ./setup_rhui.sh -d ${EXISTING_CERT_DIR}
-#elif [ ! -z "$REPO_DATA_FILE" ]; then
-#  ./setup_rhui.sh -r ${REPO_DATA_FILE}
-#elif [ ! -z "$CLIENT_RPM_DIR" ]; then
-#  ./setup_rhui.sh -c ${CLIENT_RPM_DIR}
-#else
-#  ./setup_rhui.sh
-#fi
+if [ ! -z "$EXISTING_CERT_DIR" ] && [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
+  ./setup_rhui.sh -d ${EXISTING_CERT_DIR} -r ${REPO_DATA_FILE} -c ${CLIENT_RPM_DIR}
+elif [ ! -z "$EXISTING_CERT_DIR" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
+  ./setup_rhui.sh -d ${EXISTING_CERT_DIR} -c ${CLIENT_RPM_DIR}
+elif [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$CLIENT_RPM_DIR" ]; then
+  ./setup_rhui.sh -r ${REPO_DATA_FILE} -c ${CLIENT_RPM_DIR}
+elif [ ! -z "$REPO_DATA_FILE" ] && [ ! -z "$EXISTING_CERT_DIR" ]; then
+  ./setup_rhui.sh -r ${REPO_DATA_FILE} -d ${EXISTING_CERT_DIR}
+elif [ ! -z "$EXISTING_CERT_DIR" ]; then
+  ./setup_rhui.sh -d ${EXISTING_CERT_DIR}
+elif [ ! -z "$REPO_DATA_FILE" ]; then
+  ./setup_rhui.sh -r ${REPO_DATA_FILE}
+elif [ ! -z "$CLIENT_RPM_DIR" ]; then
+  ./setup_rhui.sh -c ${CLIENT_RPM_DIR}
+else
+  ./setup_rhui.sh
+fi
 
-#if [ "$?" -ne "0" ]; then
-#	echo "Failed to run setup_rhui.sh"
-#	exit 1
-#fi
+if [ "$?" -ne "0" ]; then
+	echo "Failed to run setup_rhui.sh"
+	exit 1
+fi
 
 echo "RHUI has been setup on the below hosts"
 echo ""
