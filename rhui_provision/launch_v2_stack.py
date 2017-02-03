@@ -303,7 +303,7 @@ def _create_log_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
     cmd = "sudo lvcreate -l 100%%FREE -n %s %s" % (lvname, vgname)
     run_cmd(ssh_client, cmd)
 
-    cmd = "sudo /sbin/mkfs.ext4 -q /dev/%s/%s" % (vgname, lvname)
+    cmd = "sudo /sbin/mkfs.ext4 /dev/%s/%s" % (vgname, lvname)
     run_cmd(ssh_client, cmd)
 
     cmd = "sudo mkdir /var/log.new"
@@ -353,7 +353,7 @@ def _create_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
     cmd = "sudo lvcreate -l 100%%FREE -n %s %s" % (lvname, vgname)
     run_cmd(ssh_client, cmd)
 
-    cmd = "sudo /sbin/mkfs.ext4 -q /dev/%s/%s" % (vgname, lvname)
+    cmd = "sudo /sbin/mkfs.ext4 /dev/%s/%s" % (vgname, lvname)
     run_cmd(ssh_client, cmd)
 
     cmd = "sudo mkdir %s" % (mountpoint)
@@ -396,20 +396,11 @@ def setup_filesystem_on_host(instance_details, ssh_user, ssh_priv_key_path):
         vgname="vg2", lvname="var_pulp", mountpoint=pulp_mountpoint)
 
 def setup_filesystems(inst_details, ssh_user, ssh_priv_key_path):
-    # Will create a thread per instance so filesystem setup may happen in parallel
-    # Steps are executed in parallel to minimize the impact of
-    #  mkfs commands which take several minutes per filesystem
-    #
-    # TODO:  Add ability to capture errors from a thread and quit execution of entire script.
-    #
     start = time.time()
-    threads = []
+
     for inst in inst_details.values():
-        t = threading.Thread(target=setup_filesystem_on_host, args=(inst, ssh_user, ssh_priv_key_path))
-        t.start()
-        threads.append(t)
-    for t in threads:
-        t.join()
+        setup_filesystem_on_host(inst, ssh_user, ssh_priv_key_path)
+
     end = time.time()
     logging.info("\nLVM filesystems were created on %s hosts in %s seconds" % (len(inst_details), end-start))
 
