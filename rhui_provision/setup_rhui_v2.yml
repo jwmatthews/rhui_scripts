@@ -12,7 +12,7 @@
       with_items:
       - etc/sysconfig/iptables
       notify: restart iptables
-      
+
   handlers:
     - name: restart iptables
       action: service name=iptables state=restarted
@@ -21,7 +21,7 @@
 # TODO
 # I am replicating a task 3 times because I don't know how to tell while task runs what host it is executing on
 # This should be cleaned up once we get something working
-#   Goal is to be able to distinguish if this is running on RHUA, then pass in a parameter of 'RHUA' 
+#   Goal is to be able to distinguish if this is running on RHUA, then pass in a parameter of 'RHUA'
 #   and have script read the RHUA env variable to determine the desired hostname
 ###
 - name: Adjust hostname of RHUA
@@ -164,7 +164,7 @@
     # of faking out /etc/hosts to overwrite the 'real' production CDSes
     # for these cases...we run into a yum issue since the CDSses are not running yet and rhui-lb plugin fails to contact the CDS
     - name: Install rh-rhua-config on RHUA
-      action: shell yum -y --nogpgcheck --disableplugin=rhui-lb --disablerepo="*" localinstall /etc/rhui/rh-rhua-config* 
+      action: shell yum -y --nogpgcheck --disableplugin=rhui-lb --disablerepo="*" localinstall /etc/rhui/rh-rhua-config*
 
 
 ####
@@ -227,7 +227,7 @@
       action: service name=goferd state=restarted
 
 
-- name: rhui-manager initial setup with CA 
+- name: rhui-manager initial setup with CA
   hosts: RHUA
   user: ec2-user
   sudo: yes
@@ -277,7 +277,7 @@
         - rhui_manager_initial_cds_setup.sh
 
     - name: add both CDSes to RHUI
-      action: shell sudo ./rhui_manager_initial_cds_setup.sh 
+      action: shell sudo ./rhui_manager_initial_cds_setup.sh
 
 - name: Create custom repos
   hosts: RHUA
@@ -286,7 +286,7 @@
   gather_facts: false
   vars:
     setup_dir: "./files/setup/remote_host"
-  
+
   tasks:
     - name: scp script to create custom repos
       action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
@@ -308,36 +308,36 @@
         - custom_repos_sap.sh
         - custom_repos_vsa.sh
 
-- name: Populate custom repos content
-  hosts: RHUA
-  user: ec2-user
-  sudo: yes
-  gather_facts: false
-
-  vars:
-    setup_dir: "./files/setup/remote_host"
-
-  tasks:
-    - name: scp script to populate custom repos
-      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
-      with_items:
-        - push_client_rpms.py
-
-    - name: make custom rpm dir
-      command: mkdir -p /home/ec2-user/client_rpms
-      when: custom_client_rpm_dir != ""
-
-    - name: scp custom rpms
-      action: copy src="{{item}}" dest="/home/ec2-user/client_rpms" owner=ec2-user group=ec2-user mode=664
-      with_fileglob:
-        - ${custom_client_rpm_dir}/*.rpm 
-      when: custom_client_rpm_dir != ""
-
-    - name: populate custom repos
-      action: shell sudo ./{{item}} -r /home/ec2-user/client_rpms
-      when: custom_client_rpm_dir != ""
-      with_items:
-        - push_client_rpms.py
+#- name: Populate custom repos content
+#  hosts: RHUA
+#  user: ec2-user
+#  sudo: yes
+#  gather_facts: false
+#
+#  vars:
+#    setup_dir: "./files/setup/remote_host"
+#
+#  tasks:
+#    - name: scp script to populate custom repos
+#      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
+#      with_items:
+#        - push_client_rpms.py
+#
+#    - name: make custom rpm dir
+#      command: mkdir -p /home/ec2-user/client_rpms
+#      when: custom_client_rpm_dir != ""
+#
+#    - name: scp custom rpms
+#      action: copy src="{{item}}" dest="/home/ec2-user/client_rpms" owner=ec2-user group=ec2-user mode=664
+#      with_fileglob:
+#        - ${custom_client_rpm_dir}/*.rpm
+#      when: custom_client_rpm_dir != ""
+#
+#    - name: populate custom repos
+#      action: shell sudo ./{{item}} -r /home/ec2-user/client_rpms
+#      when: custom_client_rpm_dir != ""
+#      with_items:
+#        - push_client_rpms.py
 
 - name: Associate all custom repos to CDS
   hosts: RHUA
@@ -346,7 +346,7 @@
   gather_facts: false
   vars:
     setup_dir: "./files/setup/remote_host"
-  
+
   tasks:
     - name: scp script to create custom repos
       action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
@@ -366,7 +366,7 @@
 #
 #  vars:
 #    setup_dir: "./files/setup/remote_host"
-#  
+#
 #  tasks:
 #    - name: scp script to add RH repo
 #      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
@@ -391,7 +391,7 @@
 #
 #  vars:
 #    setup_dir: "./files/setup/remote_host"
-#  
+#
 #  tasks:
 #    - name: scp script to sync repos
 #      action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
@@ -408,10 +408,10 @@
 #  user: ec2-user
 #  sudo: yes
 #  gather_facts: false
-#  
+#
 #  tasks:
 #    - name: remove amazon_auth_plugins pkg if exist # this is critical since the pkg would block CDS from syncing repos
-#      action: shell sudo yum remove -y amazon_auth_plugins 
+#      action: shell sudo yum remove -y amazon_auth_plugins
 #      notify: restart httpd
 #
 #    - name: sync cds_01
