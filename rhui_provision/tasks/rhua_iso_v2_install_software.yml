@@ -1,9 +1,3 @@
-#- wait_for:
-#  port: 22
-#  delay: 10
-
-#- name: make new folder
-#  shell: mkdir -p /tmp/rhui
 - name: copy
   become: true
   shell: cp -r /mnt/rhui/* /home/ec2-user/
@@ -19,8 +13,6 @@
 - name: install 
   become: true
   shell: ./install_RHUA.sh
-  #args:
-  #  chdir: /tmp/rhui/
   ignore_errors: true
 - name: install 
   become: true
@@ -39,14 +31,15 @@
 - name: enable mongodb
   action: service name=mongod state=started enabled=yes
 
-#
-# TODO: Investigate if this install rhui-tools block is still needed
-# I don't think below is needed, install_RHUA.sh will invoke ./install_tools.
-# 
-#- name: install rhui-tools
-#  action: yum name={{item}} state=latest
-#  with_items:
-#   - rh-rhui-tools
-
 - name: Create NSS certificates for qpid
   command: /usr/bin/nss-db-gen
+
+# This is a hack until a new ISO are built
+- name: scp new rh-rhui-tool rpms
+  action: copy src="./{{item}}" dest="/root/{{item}}" owner=root group=root
+  with_items:
+    - rh-rhui-tools-2.1.41-1.el6.noarch.rpm
+    - rh-rhui-tools-debug-script-2.1.41-1.el6.noarch.rpm  
+- name: install new rh-rhui-tools
+  become: true
+  shell: yum localinstall -y /root/rh-rhui-tools-debug-script-2.1.41-1.el6.noarch.rpm /root/rh-rhui-tools-2.1.41-1.el6.noarch.rpm
