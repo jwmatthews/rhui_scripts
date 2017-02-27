@@ -287,9 +287,11 @@ def run_cmd(ssh_client, cmd):
     # We need to run with a pty so 'sudo' commands will work.
     output = ""
     logging.info("Running: '%s'" % (cmd))
+    # stdin, stdout, stderr = ssh_client.exec_command(cmd, get_pty=True)
+    # this won't work without get_pty, but it lets us skip disk setup.
     stdin, stdout, stderr = ssh_client.exec_command(cmd)
     exit_code = stdout.channel.recv_exit_status()
-    logging.info("Completed: '%s' \nExit Code: %s\nOutput: %s" % (cmd, exit_code, output))
+    logging.info("Completed: '%s' \nExit Code: %s\nOutput: %s\nStdErr: %s" % (cmd, exit_code, output, stderr.read()))
     if exit_code:
         raise Exception("Failed to run: '%s'\nExit Code of: %s" % (cmd, exit_code))
 
