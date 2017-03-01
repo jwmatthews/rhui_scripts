@@ -1,4 +1,4 @@
-- name: scp iso file 
+- name: scp iso file
   action: copy src="{{iso_path}}" dest="/root/" owner=root group=root
 
 - name: create mount point
@@ -9,11 +9,13 @@
 
 #- name: setup rhui-installer
 #  action: shell cd /mnt/rhui && ./setup_package_repos --nogpgsigs # TODO: This needs to be removed for production ISOs
-  
-- name: install util rpms
-  shell: sudo yum install -y {{item}}
-  with_items:
-   - bind-utils
+
+- name: yum install bind-utils
+  become: true
+  yum:
+    name: bind-utils
+    state: installed
 
 - name: disable rh-common repo
-  command: sudo yum-config-manager --disable rhui-REGION-rhel-server-rh-common
+  shell: yum-config-manager --disable rhui-REGION-rhel-server-rh-common
+  become: true

@@ -7,9 +7,9 @@
     - gen_certs.sh
     - redhat-uep.pem
 ##
-# TODO:  Check if 'redhat-uep.pem' is needed.  This may no longer be required and we can remove and remove from the vars files 
+# TODO:  Check if 'redhat-uep.pem' is needed.  This may no longer be required and we can remove and remove from the vars files
 ##
 
 - name: Generate X509 certificates
-  command: sudo /home/ec2-user/gen_certs.sh chdir=/home/ec2-user
-
+  command: /home/ec2-user/gen_certs.sh chdir=/home/ec2-user
+  become: true

@@ -2,44 +2,26 @@
   become: true
   shell: cp -r /mnt/rhui/* /home/ec2-user/
 
-# - name: chmod RHUI install scripts to be executable
-#   become: true
-#   shell: chmod a+x /home/ec2-user/install*
-
-- name: make install_RHUA.sh executable
+- name: make RHUI install scripts executable
+  file: mode="a+x" path={{ item }}
   become: true
-  file:
-    path: /home/ec2-user/install_RHUA.sh
-    mode: "a+x"
-
-- name: make install_CDS.sh executable
-  become: true
-  file:
-    path: /home/ec2-user/install_CDS.sh
-    mode: "a+x"
-
-- name: make install_tools.sh executable
-  become: true
-  file:
-    path: /home/ec2-user/install_tools.sh
-    mode: "a+x"
-
-# - name: show current directory
-#   become: true
-#   command: pwd
-# - name: show contents of current directory with permissions
-#   become: true
-#   command: ls -larht
+  with_items:
+    - /home/ec2-user/install_RHUA.sh
+    - /home/ec2-user/install_CDS.sh
+    - /home/ec2-user/install_tools.sh
 
 - name: install RHUA packages
   shell: /home/ec2-user/install_RHUA.sh
   become: true
   ignore_errors: true
+  async: 900
+  poll: 30
 
 - name: install RHUI tools packages
   shell: /home/ec2-user/install_tools.sh
   become: true
-
+  async: 900
+  poll: 30
 
 #- name: install pulp
 #  shell: cd /mnt/rhui && bash install_RHUA.sh
@@ -55,6 +37,7 @@
   action: service name=mongod state=started enabled=yes
 
 - name: Create NSS certificates for qpid
+  become: true
   command: /usr/bin/nss-db-gen
 
 # This is a hack until a new ISO are built

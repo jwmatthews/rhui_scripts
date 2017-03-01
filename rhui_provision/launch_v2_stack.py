@@ -221,8 +221,10 @@ def write_ansible_inventory(instance_details, out_file):
         # The supplied cloud formation JSON file needs
         # a tag of "Role" for each instance provisioned
         data += "[%s]\n" % (role)
-        data += "%s\n" % (dns_name)
-
+        if 'cds' in role.lower():
+            data += "%s pulp_mount=/var/lib/pulp-cds\n" % (dns_name)
+        else:
+            data += "%s pulp_mount=/var/lib/pulp\n" % (dns_name)
     f = open(out_file, "w")
     try:
         f.write(data)
@@ -287,128 +289,13 @@ def run_cmd(ssh_client, cmd):
     # We need to run with a pty so 'sudo' commands will work.
     output = ""
     logging.info("Running: '%s'" % (cmd))
-    # stdin, stdout, stderr = ssh_client.exec_command(cmd, get_pty=True)
+    stdin, stdout, stderr = ssh_client.exec_command(cmd, get_pty=True)
     # this won't work without get_pty, but it lets us skip disk setup.
-    stdin, stdout, stderr = ssh_client.exec_command(cmd)
+    # stdin, stdout, stderr = ssh_client.exec_command(cmd)
     exit_code = stdout.channel.recv_exit_status()
     logging.info("Completed: '%s' \nExit Code: %s\nOutput: %s\nStdErr: %s" % (cmd, exit_code, output, stderr.read()))
     if exit_code:
         raise Exception("Failed to run: '%s'\nExit Code of: %s" % (cmd, exit_code))
-
-def _create_log_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
-    # Creating the log partition requires that we:
-    # - Mount new partition to a temp location
-    # - Move existing log files over
-    # - Remount new partition to desired location
-    cmd = "sudo pvcreate %s" % (blockdevice)
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo vgcreate %s %s" % (vgname, blockdevice)
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo lvcreate -l 100%%FREE -n %s %s" % (lvname, vgname)
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo /sbin/mkfs.ext4 /dev/%s/%s" % (vgname, lvname)
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo mkdir /var/log.new"
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo mount /dev/%s/%s /var/log.new" % (vgname, lvname)
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo mv /var/log/* /var/log.new/"
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo mv /var/log /var/log.old"
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo umount /var/log.new"
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo mv /var/log.new /var/log"
-    run_cmd(ssh_client, cmd)
-
-    cmd = "echo '/dev/%s/%s %s ext4 defaults 0 0' | sudo tee -a /etc/fstab" % (vgname, lvname, mountpoint)
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo mount %s" % (mountpoint)
-    run_cmd(ssh_client, cmd)
-
-    # 'service httpd restart' was failing with:
-    #  Starting httpd: (13)Permission denied: httpd: could not open error log file /etc/httpd/logs/error_log.
-    #  Unable to open logs
-    #
-    # Cause was that the new /var/log mountpoint we created defaults to 'file_t'
-    # httpd selinux policy is unable to read 'file_t', we need to change to 'var_t'
-    #
-    cmd = "sudo semanage fcontext -a -t var_t %s" % (mountpoint)
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo restorecon %s" % (mountpoint)
-    run_cmd(ssh_client, cmd)
-
-def _create_part(ssh_client, blockdevice, vgname, lvname, mountpoint):
-    cmd = "sudo pvcreate %s" % (blockdevice)
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo vgcreate %s %s" % (vgname, blockdevice)
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo lvcreate -l 100%%FREE -n %s %s" % (lvname, vgname)
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo /sbin/mkfs.ext4 /dev/%s/%s" % (vgname, lvname)
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo mkdir %s" % (mountpoint)
-    run_cmd(ssh_client, cmd)
-
-    # we can't run: sudo echo 'something' >> /etc/fstab.txt
-    # so we are using 'tee' in place of echo
-    cmd = "echo '/dev/%s/%s %s ext4 defaults 0 0' | sudo tee -a /etc/fstab" % (vgname, lvname, mountpoint)
-    run_cmd(ssh_client, cmd)
-
-    cmd = "sudo mount %s" % (mountpoint)
-    run_cmd(ssh_client, cmd)
-
-def setup_filesystem_on_host(instance_details, ssh_user, ssh_priv_key_path):
-    dns_name = instance_details["PublicDnsName"]
-    role = instance_details["Tags"]["Role"]
-    logging.info("Setting up LVM filesystems on '%s' which is a '%s'" % (dns_name, role))
-
-    #ssh_client = sshclient_from_instance(instance_details["instance"],
-    #    ssh_key_file=ssh_priv_key_path, user_name=ssh_user)
-    ssh_client = paramiko.SSHClient()
-    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    ssh_client.connect(hostname=instance_details["instance"]["PublicDnsName"], key_filename=ssh_priv_key_path, username=ssh_user)
-    pulp_mountpoint = "/var/lib/pulp"
-    if role.upper().startswith("CDS"):
-        pulp_mountpoint = "/var/lib/pulp-cds"
-
-    # Expected partitions
-    # /dev/xvdm for /var/log
-    # /dev/xvdn for /var/lib/mongodb
-    # /dev/xvdp for /var/lib/pulp or /var/lib/pulp-cds
-    logging.info("Setting up /var/log on '%s'" % (dns_name))
-    _create_log_part(ssh_client, blockdevice="/dev/xvdm",
-        vgname="vg0", lvname="var_log", mountpoint="/var/log")
-    logging.info("Setting up /var/lib/mongodb on '%s'" % (dns_name))
-    _create_part(ssh_client, blockdevice="/dev/xvdn",
-        vgname="vg1", lvname="var_mongodb", mountpoint="/var/lib/mongodb")
-    logging.info("Setting up %s on '%s'" % (pulp_mountpoint, dns_name))
-    _create_part(ssh_client, blockdevice="/dev/xvdp",
-        vgname="vg2", lvname="var_pulp", mountpoint=pulp_mountpoint)
-
-def setup_filesystems(inst_details, ssh_user, ssh_priv_key_path):
-    start = time.time()
-
-    for inst in inst_details.values():
-        setup_filesystem_on_host(inst, ssh_user, ssh_priv_key_path)
-
-    end = time.time()
-    logging.info("\nLVM filesystems were created on %s hosts in %s seconds" % (len(inst_details), end-start))
 
 if __name__ == "__main__":
     start = time.time()
@@ -475,8 +362,6 @@ if __name__ == "__main__":
     if not wait_for_instance_ready(hostnames, details):
         logging.error("\n***Stack is not complete, problem with instance turning to ready state.***\n")
         sys.exit(1)
-
-    setup_filesystems(details, ssh_user, ssh_priv_key_path)
 
     logging.info("StackID: %s" % (stack_id))
     end = time.time()
