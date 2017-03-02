@@ -1,0 +1,88 @@
+---
+- name: Configure logical volumes to provide storage for logs, mongodb, pulp
+  hosts: RHUA:CDS_01:CDS_02
+  user: ec2-user
+  become: true
+  gather_facts: true
+  strategy: debug
+  tasks:
+    # Create physical volumes and volume groups
+    - name: Create physical volumes and volume groups
+      lvg:
+        vg: '{{ item.volume_group }}'
+        pvs: '/dev/{{ item.physical_volume }}'
+      with_items:
+        - {volume_group: 'vg0', physical_volume: 'xvdm'}
+        - {volume_group: 'vg1', physical_volume: 'xvdn'}
+        - {volume_group: 'vg2', physical_volume: 'xvdp'}
+
+    - name: Create logical volumes
+      lvol:
+        vg: '{{ item.volume_group }}'
+        lv: '{{ item.logical_volume }}'
+        size: +100%FREE
+      with_items:
+        - {volume_group: 'vg0', logical_volume: 'var_log'}
+        - {volume_group: 'vg1', logical_volume: 'var_mongodb'}
+        - {volume_group: 'vg2', logical_volume: 'var_pulp'}
+
+
+    # Create filesystems for all LVs
+    - name: Create ext4 filesystems
+      async: 200
+      register: filesystem_creations
+      poll: 0
+      filesystem:
+        fstype: ext4
+        dev: '{{ item }}'
+        opts: -E lazy_itable_init
+      with_items:
+        - /dev/vg0/var_log
+        - /dev/vg1/var_mongodb
+        - /dev/vg2/var_pulp
+
+    - name: Wait for ext4 filesytems
+      async_status: jid={{ item.ansible_job_id }}
+      register: result
+      until: result.finished
+      retries: 20
+      delay: 10
+      with_items: '{{ filesystem_creations.results }}'
+
+
+    # Backup logs from /var/log to created LV
+    - name: Create /var/log_new directory to serve var_log mount-point
+      file:
+        path: /var/log_new
+        state: directory
+
+    - name: Mount var_log LV at new directory /var/log_new
+      shell: mount /dev/vg0/var_log /var/log_new
+
+    - name: Sync contents of /var/log to /var/log_new
+      shell: rsync -a /var/log/ /var/log_new
+
+    - name: Unmount /var/log_new
+      shell: umount /var/log_new
+
+
+    # Create fstab entries and mount all LVs
+    - name: Add fstab entries for logical volumes
+      mount:
+        src: '{{ item.device_name }}'
+        name: '{{ item.mount_path }}'
+        fstype: ext4
+        opts: defaults
+        dump: 0
+        passno: 0
+        state: mounted
+      with_items:
+        - {device_name: '/dev/vg0/var_log', mount_path: '/var/log'}
+        - {device_name: '/dev/vg1/var_mongodb', mount_path: '/var/lib/mongodb'}
+        - {device_name: '/dev/vg2/var_pulp', mount_path: '{{ pulp_mount }}'}
+
+    - name: Fix SELinux context on new /var/log
+      shell: semanage fcontext -a -t var_t /var/log
+
+    - name: Restore SELinux context on /var/log
+      shell: restorecon -R /var/log
