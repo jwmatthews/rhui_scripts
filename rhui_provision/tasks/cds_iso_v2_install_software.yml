@@ -1,3 +1,5 @@
 - name: install pulp-cds
   action: shell cd /mnt/rhui && bash install_CDS.sh
   notify: restart httpd
+  async: 900
+  poll: 30

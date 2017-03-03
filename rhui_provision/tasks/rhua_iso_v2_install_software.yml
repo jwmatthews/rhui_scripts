@@ -1,22 +1,27 @@
-- name: copy
+- name: copy RHUI install scripts to ec-2 homedir
   become: true
   shell: cp -r /mnt/rhui/* /home/ec2-user/
-- name: chmod
+
+- name: make RHUI install scripts executable
+  file: mode="a+x" path={{ item }}
   become: true
-  shell: chmod a+x /home/ec2-user/install*
-- name: show
+  with_items:
+    - /home/ec2-user/install_RHUA.sh
+    - /home/ec2-user/install_CDS.sh
+    - /home/ec2-user/install_tools.sh
+
+- name: install RHUA packages
+  shell: /home/ec2-user/install_RHUA.sh
   become: true
-  command: pwd
-- name: show
-  become: true
-  command: ls -larht
-- name: install 
-  become: true
-  shell: ./install_RHUA.sh
   ignore_errors: true
-- name: install 
+  async: 900
+  poll: 30
+
+- name: install RHUI tools packages
+  shell: /home/ec2-user/install_tools.sh
   become: true
-  shell: ./install_tools.sh
+  async: 900
+  poll: 30
 
 #- name: install pulp
 #  shell: cd /mnt/rhui && bash install_RHUA.sh
@@ -32,6 +37,7 @@
   action: service name=mongod state=started enabled=yes
 
 - name: Create NSS certificates for qpid
+  become: true
   command: /usr/bin/nss-db-gen
 
 # This is a hack until a new ISO are built
@@ -39,7 +45,7 @@
   action: copy src="./{{item}}" dest="/root/{{item}}" owner=root group=root
   with_items:
     - rh-rhui-tools-2.1.41-1.el6.noarch.rpm
-    - rh-rhui-tools-debug-script-2.1.41-1.el6.noarch.rpm  
+    - rh-rhui-tools-debug-script-2.1.41-1.el6.noarch.rpm
 - name: install new rh-rhui-tools
   become: true
   shell: yum localinstall -y /root/rh-rhui-tools-debug-script-2.1.41-1.el6.noarch.rpm /root/rh-rhui-tools-2.1.41-1.el6.noarch.rpm

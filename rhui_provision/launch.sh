@@ -104,4 +104,3 @@ fi
 echo "RHUI has been setup on the below hosts"
 echo ""
 cat ${HOSTNAMES_ENV}
-

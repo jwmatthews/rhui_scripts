@@ -48,4 +48,3 @@ if [ ! -z "$PACKAGES" ]; then
         ansible-playbook install_optional_pkg.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${EC2_SSH_PRIV_KEY} --extra-vars "pkg=$PKG pkg_name=$PKG_NAME" | tee ${LOG_DIR}/install_optional_pkg.log
     done
 fi
-

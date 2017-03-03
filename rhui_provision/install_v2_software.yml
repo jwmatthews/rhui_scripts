@@ -1,30 +1,32 @@
 ---
+- include: create_v2_partitions.yml
+
 - name: Update Environment To Enable Package Installation
   hosts: RHUA:CDS_01:CDS_02
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: true
 
   tasks:
     - name: disable rh-common repo
-      shell: yum-config-manager --disable rhui-REGION-rhel-server-rh-common 
+      shell: yum-config-manager --disable rhui-REGION-rhel-server-rh-common
 
     - name: copy rhui-lb.py
       action: copy src="./files/setup/remote_host/rhui-lb.py" dest="/home/ec2-user/rhui-lb.py" owner=root mode=0644
-    
+
     - name: update rhui-lb.py
       replace: dest="/home/ec2-user/rhui-lb.py" regexp='REGION' replace='{{ region }}'
-    
+
     - name: backup original copy of rhui-lb.py
       shell: cp /usr/lib/yum-plugins/rhui-lb.py /usr/lib/yum-plugins/rhui-lb.py.backup
-    
+
     - name: install new rhui-lb.py
       shell: cp /home/ec2-user/rhui-lb.py /usr/lib/yum-plugins/
-      
+
 - name: Install Common Packages for both RHUA & CDS
   hosts: RHUA:CDS_01:CDS_02
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: true
 
   tasks:
@@ -49,7 +51,7 @@
 - name: Install Packages for RHUA
   hosts: RHUA
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: true
 
   vars:
@@ -68,7 +70,7 @@
 - name: Install Packages for CDS
   hosts: CDS_01:CDS_02
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: true
 
   vars:

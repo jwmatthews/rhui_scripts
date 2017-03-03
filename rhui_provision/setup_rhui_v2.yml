@@ -3,7 +3,7 @@
 - name: Adjust firewall
   hosts: RHUA:CDS_01:CDS_02
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
 
   tasks:
@@ -27,13 +27,12 @@
 - name: Adjust hostname of RHUA
   hosts: RHUA
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
   vars:
       setup_dir: "./files/setup/remote_host"
 
   tasks:
-
     - name: scp adjust_hostname.sh script to each instance
       action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
       with_items:
@@ -57,18 +56,16 @@
       when: existing_cert_dir != ""
 
     - name: Run adjust_hostname.sh on each instance
-      command: sudo ./adjust_hostname_rhua.sh chdir=/home/ec2-user
+      command: ./adjust_hostname_rhua.sh chdir=/home/ec2-user
 
 - name: Adjust hostname of each host
   hosts: CDS_01
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
   vars:
       setup_dir: "./files/setup/remote_host"
-
   tasks:
-
     - name: scp adjust_hostname.sh script to each instance
       action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user mode=0775
       with_items:
@@ -92,12 +89,12 @@
       when: existing_cert_dir != ""
 
     - name: Run adjust_hostname.sh on each instance
-      command: sudo ./adjust_hostname_cds1.sh chdir=/home/ec2-user
+      shell: ./adjust_hostname_cds1.sh chdir=/home/ec2-user
 
 - name: Adjust hostname of each host
   hosts: CDS_02
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
   vars:
       setup_dir: "./files/setup/remote_host"
@@ -127,12 +124,12 @@
       when: existing_cert_dir != ""
 
     - name: Run adjust_hostname.sh on each instance
-      command: sudo ./adjust_hostname_cds2.sh chdir=/home/ec2-user
+      command: ./adjust_hostname_cds2.sh chdir=/home/ec2-user
 
 - name: Copy existing certificates or Generate new ones
   hosts: RHUA
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
 
   tasks:
@@ -151,14 +148,13 @@
 - name: Execute rhui-installer on RHUA
   hosts: RHUA
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
   vars:
       answers_file: "/home/ec2-user/rhui-certs/answers"
-
   tasks:
     - name: Run rhui-installers
-      command: sudo rhui-installer {{answers_file}} chdir=/home/ec2-user
+      command: rhui-installer {{answers_file}} chdir=/home/ec2-user
 
     # Note we need to disable the yum rhui-lb plugin, because we sometimes run into an issue
     # of faking out /etc/hosts to overwrite the 'real' production CDSes
@@ -194,9 +190,8 @@
 - name: Run pulp-server init
   hosts: RHUA
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
-
   tasks:
     - name: pulp-server init
       action: shell service pulp-server init
@@ -205,38 +200,39 @@
 - name: Restart Services on RHUA
   hosts: RHUA
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
-
   tasks:
-    - name: restart pulp-server
-      action: service name=pulp-server state=restarted
+    - name: Restart pulp-server service
+      service:
+        name: pulp-server
+        state: restarted
 
 
 - name: Restart Services on CDS
   hosts: CDS_01:CDS_02
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
-
   tasks:
-    - name: restart pulp-cds
-      action: service name=pulp-cds state=restarted
+    - name: Restart pulp-cds service
+      service:
+        name: pulp-cds
+        state: restarted
 
-    - name: restart goferd
-      action: service name=goferd state=restarted
-
+    - name: Restart goferd service
+      service:
+        name: goferd
+        state: restarted
 
 - name: rhui-manager initial setup with CA
   hosts: RHUA
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
   vars:
       setup_dir: "./files/setup/remote_host"
-
   tasks:
-
     - name: scp script to create initial user
       action: copy src="{{setup_dir}}/rhui_manager_initial_setup.sh" dest="/home/ec2-user/rhui_manager_initial_setup.sh" owner=ec2-user mode=0775
 
@@ -247,46 +243,41 @@
 - name: Upload content certificate
   hosts: RHUA
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
   vars:
     content_cert: "{{ lookup('env', 'CONTENT_CERT') }}"
-
   tasks:
-
     - name: scp content certificate
       action: copy src="{{content_cert}}" dest="/root/content_cert.pem" owner=root group=root mode=0664
 
     - name: upload content cert to rhui-manager
-      action: shell sudo rhui-manager --username admin --password admin cert upload --cert /root/content_cert.pem
+      shell: rhui-manager --username admin --password admin cert upload --cert /root/content_cert.pem
 
 
 - name: Register CDS1 and CDS2
   hosts: RHUA
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
   vars:
     setup_dir: "./files/setup/remote_host"
-
   tasks:
-
     - name: scp script to create initial user
       action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
       with_items:
         - rhui_manager_initial_cds_setup.sh
 
     - name: add both CDSes to RHUI
-      action: shell sudo ./rhui_manager_initial_cds_setup.sh
+      shell: ./rhui_manager_initial_cds_setup.sh
 
 - name: Create custom repos
   hosts: RHUA
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
   vars:
     setup_dir: "./files/setup/remote_host"
-
   tasks:
     - name: scp script to create custom repos
       action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
@@ -299,7 +290,7 @@
         - custom_repos_vsa.sh
 
     - name: create custom repos
-      action: shell sudo ./{{item}}
+      shell: ./{{item}}
       with_items:
         - custom_repos_beta.sh
         - custom_repos_ha.sh
@@ -342,11 +333,10 @@
 - name: Associate all custom repos to CDS
   hosts: RHUA
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
   vars:
     setup_dir: "./files/setup/remote_host"
-
   tasks:
     - name: scp script to create custom repos
       action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
@@ -354,19 +344,17 @@
         - add_repos_to_cds.sh
 
     - name: create custom repos
-      action: shell sudo ./{{item}}
+      shell: ./{{item}}
       with_items:
         - add_repos_to_cds.sh
 
 - name: Add RH repos
   hosts: RHUA
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
-
   vars:
     setup_dir: "./files/setup/remote_host"
-
   tasks:
     - name: scp script to add RH repo
       action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
@@ -378,7 +366,7 @@
       when: rh_repo_data != ""
 
     - name: add RH repo
-      action: shell sudo python {{item}} -j {{rh_repo_data_filename}}
+      shell: python {{item}} -j {{rh_repo_data_filename}}
       with_items:
         - add_rh_repos.py
       when: rh_repo_data != ""
@@ -386,12 +374,9 @@
 - name: Sync RHUA repos
   hosts: RHUA
   user: ec2-user
-  sudo: yes
   gather_facts: false
-
   vars:
     setup_dir: "./files/setup/remote_host"
-
   tasks:
     - name: scp script to sync repos
       action: copy src="{{setup_dir}}/{{item}}" dest="/home/ec2-user/{{item}}" owner=ec2-user group=ec2-user mode=0775
@@ -399,19 +384,18 @@
         - sync_all_repos.sh
 
     - name: sync all repos
-      action: shell sudo ./{{item}}
+      shell: ./{{item}}
       with_items:
         - sync_all_repos.sh
 
 - name: Sync CDSes
   hosts: RHUA
   user: ec2-user
-  sudo: yes
+  become: true
   gather_facts: false
-
   tasks:
     - name: remove amazon_auth_plugins pkg if exist # this is critical since the pkg would block CDS from syncing repos
-      action: shell sudo yum remove -y amazon_auth_plugins
+      shell: yum remove -y amazon_auth_plugins
       notify: restart httpd
 
     - name: sync cds_01
