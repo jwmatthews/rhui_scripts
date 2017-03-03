@@ -56,10 +56,6 @@ def parse_args():
     # Required parameter for the input cloud formation template file
     parser.add_option('--template',
         default=None, help='Path to AWS Cloud Formation template file in JSON Format')
-    parser.add_option('--vpc_id',
-        default=None, help='RHUI VPC ID on AWS, should be associated with RHUI subnet.')
-    parser.add_option('--subnet_id',
-        default=None, help='RHUI Subnet ID on AWS, should be associated with RHUI VPC')
     # Optional parameters
     parser.add_option('--debug', action='store_true',
         default=False, help='debug mode')
@@ -312,8 +308,6 @@ if __name__ == "__main__":
     ssh_priv_key_path = opts.ssh_priv_key_path
     ssh_user = opts.ssh_user
     timeout = opts.timeout
-    vpc_id = opts.vpc_id
-    subnet_id = opts.subnet_id
     yaml_out_file = opts.yaml_out_file
     user_name = get_user()
 
@@ -329,9 +323,9 @@ if __name__ == "__main__":
     # Launch EC-2 resources
     cloud_form_json_body = read_file(cloudformfile)
     stack_id = get_stack_id()
-    parameters = [{"ParameterKey": "KeyName", "ParameterValue": ssh_key_name}, {"ParameterKey": "OwnerName", "ParameterValue": user_name},
-                  {"ParameterKey": "InstanceType", "ParameterValue": instance_type}, {"ParameterKey": "RHUIVpcId", "ParameterValue": vpc_id},
-                  {"ParameterKey": "RHUISubnetId", "ParameterValue": subnet_id}]
+    parameters = [{"ParameterKey": "KeyName", "ParameterValue": ssh_key_name},
+                  {"ParameterKey": "OwnerName", "ParameterValue": user_name},
+                  {"ParameterKey": "InstanceType", "ParameterValue": instance_type}]
     instance_ids = create_cloudformation(con_cf=con_cf,
         json_body=cloud_form_json_body,
         parameters=parameters,
