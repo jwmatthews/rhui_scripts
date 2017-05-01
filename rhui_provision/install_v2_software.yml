@@ -48,6 +48,8 @@
     - include: tasks/prep_repo_install.yml
       when: iso_path == ""
 
+    - include: tasks/set_ntp.yml
+
 - name: Install Packages for RHUA
   hosts: RHUA
   user: ec2-user

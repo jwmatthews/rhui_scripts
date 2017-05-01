@@ -1,0 +1,5 @@
+- name: install NTPD from yum
+  action: yum name=ntp state=present
+  
+- name: enable and start NTPD
+  service: name=ntpd enabled=yes state=started
