@@ -6,7 +6,7 @@
   action: yum pkg=/tmp/epel-release.rpm state=installed
 
 - name: install extra rpms to make devel env nicer
-  action: yum name=$item state=present
+  action: yum name={{ item }} state=present
   with_items:
     - vim-enhanced
     - git
