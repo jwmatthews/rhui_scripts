@@ -36,6 +36,7 @@ echo
 echo "Options"
 echo " -p      Optional packages to install on RHUA/CDS (default: $PACKAGES)"
 echo " -i      Install RHUA/CDS software from ISO (default: $ISO_PATH)"
+echo " -m      Install Monitoring software from RPM (default: $MON_RPM_PATH)"
 echo " -d      Directory containing existing certificates to user for this install"
 echo " -r      RH Repo Data file"
 echo " -c      Client RPMs directory"
@@ -43,7 +44,7 @@ echo " -h      Help"
 exit 2
 }
 
-while getopts ":p:,:i:,:d:,:r:,:c:,:h" opt; do
+while getopts ":p:,:i:,:d:,:r:,:c:,:h:,:m" opt; do
     case $opt in
         h)     usage;;
         p)     PACKAGES=$OPTARG;;
@@ -51,6 +52,7 @@ while getopts ":p:,:i:,:d:,:r:,:c:,:h" opt; do
         d)     EXISTING_CERT_DIR=$OPTARG;;
         r)     REPO_DATA_FILE=$OPTARG;;
         c)     CLIENT_RPM_DIR=$OPTARG;;
+        c)     MON_RPM_PATH=$OPTARG;;
         \?)    break;; # end of options
     esac
 done

@@ -87,3 +87,16 @@
   handlers:
     - name: restart httpd
       action: service name=httpd state=restarted
+
+- name: Install Packages for Monitoring
+  hosts: MON_SERV 
+  user: ec2-user
+  become: true
+  gather_facts: true
+
+  tasks:
+    - include: tasks/mon_serv_install.yml
+    
+    - include: tasks/set_ntp.yml
+
+  

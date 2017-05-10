@@ -219,6 +219,8 @@ def write_ansible_inventory(instance_details, out_file):
         data += "[%s]\n" % (role)
         if 'cds' in role.lower():
             data += "%s pulp_mount=/var/lib/pulp-cds\n" % (dns_name)
+        elif 'mon' in role.lower():
+            data += "%s\n" % (dns_name)
         else:
             data += "%s pulp_mount=/var/lib/pulp\n" % (dns_name)
     f = open(out_file, "w")

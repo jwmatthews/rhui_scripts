@@ -19,3 +19,6 @@ doc/
 
 rhui_hosts
 hostnames.env
+*.rpm
+*.retry
+
