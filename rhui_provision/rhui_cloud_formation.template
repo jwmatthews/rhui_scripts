@@ -202,6 +202,55 @@
               ]
             }
         }, 
+        "monitoringService": {
+            "Type": "AWS::EC2::Instance", 
+            "Properties": {
+                "Tags": [
+                    {
+                        "Value": {
+                            "Fn::Join": [
+                                "_", 
+                                [
+                                    {
+                                        "Ref": "OwnerName"
+                                    },
+                                    "monitoringService"
+                                ]
+                            ]
+                        }, 
+                        "Key": "Name"
+                    }, 
+                    {
+                        "Value": "MON_SER", 
+                        "Key": "Role"
+                    } 
+                ], 
+                "KeyName": {
+                    "Ref": "KeyName"
+                }, 
+                "SecurityGroups": [
+                    {
+                        "Ref": "Monitoringsecuritygroup"
+                    }
+                ], 
+                "InstanceType": { "Ref": "InstanceType"}, 
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "RHEL64", 
+                        {
+                            "Ref": "AWS::Region"
+                        }, 
+                        "AMI"
+                    ]
+                },
+                "BlockDeviceMappings": [
+                {
+                    "DeviceName" : "/dev/sda1",
+                    "Ebs" : { "VolumeSize" : "20" } 
+                }
+              ]
+            }
+        }, 
         "RHUIsecuritygroup": {
             "Type": "AWS::EC2::SecurityGroup", 
             "Properties": {
@@ -226,6 +275,20 @@
                     }
                 ], 
                 "GroupDescription": "RHUI security group"
+            }
+        }
+        "Monitoringsecuritygroup": {
+            "Type": "AWS::EC2::SecurityGroup", 
+            "Properties": {
+                "SecurityGroupIngress": [
+                    {
+                        "ToPort": "22", 
+                        "FromPort": "22", 
+                        "IpProtocol": "tcp", 
+                        "CidrIp": "0.0.0.0/0"
+                    }, 
+                ], 
+                "GroupDescription": "Monitoring Security Group"
             }
         }
     }, 
