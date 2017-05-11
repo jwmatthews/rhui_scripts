@@ -95,7 +95,7 @@
   gather_facts: true
 
   tasks:
-    - include: tasks/mon_serv_install.yml
+    - include: tasks/monitoring_service_install.yml
     
     - include: tasks/set_ntp.yml
 

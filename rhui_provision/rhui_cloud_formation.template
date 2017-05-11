@@ -247,18 +247,6 @@
                 {
                     "DeviceName" : "/dev/sda1",
                     "Ebs" : { "VolumeSize" : "20" } 
-                },
-                {
-                  "DeviceName" : "/dev/sdm",
-                  "Ebs" : { "VolumeSize" : "20" }
-                },
-                {
-                  "DeviceName" : "/dev/sdn",
-                  "Ebs" : { "VolumeSize" : "20" }
-                },
-                {
-                  "DeviceName" : "/dev/sdp",
-                  "Ebs" : { "VolumeSize" : "50" }
                 }
               ]
             }

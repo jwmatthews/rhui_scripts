@@ -1,0 +1,12 @@
+- name: Update machine to latest
+  yum:
+    name: '*'
+    state: latest
+
+- name: Scp monitoring RPM to host
+  action: copy src="{{ monitor_service_rpm_path }}" dest="/root/monitor.rpm" owner=root group=root
+  
+- name: Install monitoring RPM
+  yum:
+    name: "/root/monitor.rpm"
+    state: present
