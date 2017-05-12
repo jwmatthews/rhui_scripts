@@ -1,0 +1,26 @@
+- name: Backup old ssl configuration
+  command: mv /etc/httpd/conf.d/ssl.conf /etc/httpd/conf.d/ssl.conf.bak
+
+- name: Copy and install new ssl configuration
+  copy: 
+    src: "files/ssl.conf" 
+    dest: "/etc/httpd/conf.d/ssl.conf" 
+    owner: root
+    group: root
+    mode: 0644
+
+
+- name: Generate DH params for cert
+  command: openssl dhparam -out /etc/pki/cds/dh2048.pem 2048
+
+- name: Backup old ssl cert
+  command: cp /etc/pki/cds/cds-ssl-cert.crt /etc/pki/cds/cds-ssl-cert.crt.bak
+
+- name: remove old DH params if exist
+  command: sed -i.bak.sed '/-----BEGIN DH PARAMETERS-----/,/-----END DH PARAMETERS-----/d' /etc/pki/cds/cds-ssl-cert.crt
+
+- name: Concate DH params to SSL cert
+  shell: cat /etc/pki/cds/dh2048.pem >> /etc/pki/cds/cds-ssl-cert.crt
+
+- name: restart httpd
+  action: service name=httpd state=restarted

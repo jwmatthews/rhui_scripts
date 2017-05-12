@@ -22,3 +22,6 @@ hostnames.env
 *.rpm
 *.retry
 
+# Vim swp files
+*.swp
+
