@@ -1,0 +1,7 @@
+- name: Scp monitoring RPM to host
+  action: copy src="{{ rhua_monitor_service_rpm_path }}" dest="/root/monitor.rpm" owner=root group=root
+  
+- name: Install monitoring RPM
+  yum:
+    name: "/root/monitor.rpm"
+    state: present
