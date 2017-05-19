@@ -1,0 +1,10 @@
+- name: Install packages for monitoring
+  hosts: RHUA
+  user: ec2-user
+  become: true
+  gather_facts: true
+
+  tasks:
+    - include: tasks/rhua_monitoring_service_install.yml
+    
+    - include: tasks/set_ntp.yml

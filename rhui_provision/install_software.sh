@@ -15,6 +15,7 @@ echo "Options"
 echo " -p      Optional packages to install on RHUA/CDS (default: $PACKAGES)"
 echo " -i      Install RHUA/CDS software from ISO (default: $ISO_PATH)"
 echo " -m      Install Monitor software from RPM (default: $MON_RPM_PATH)"
+echo " -r      Install RHUA Monitor software from RPM default: $RHUA_MON_RPM_PATH"
 echo " -h      Help"
 exit 2
 }
@@ -34,7 +35,7 @@ if [ ! -z "$ISO_PATH" ]; then
   ISO_FILENAME=`echo $ISO_PATH | rev | cut -f1 -d'/' | rev`
 fi
 
-ansible-playbook install_v2_software.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${EC2_SSH_PRIV_KEY} --extra-vars "iso_path=$ISO_PATH rhui_iso_filename=$ISO_FILENAME region=$REGION monitor_service_rpm_path=$MON_RPM_PATH" | tee ${LOG_DIR}/install_software.log
+ansible-playbook install_v2_software.yml -i ${ANSIBLE_INVENTORY} -vv --private-key=${EC2_SSH_PRIV_KEY} --extra-vars "iso_path=$ISO_PATH rhui_iso_filename=$ISO_FILENAME region=$REGION monitor_service_rpm_path=$MON_RPM_PATH rhua_monitor_service_rpm_path=$RHUA_MON_RPM_PATH" | tee ${LOG_DIR}/install_software.log
 
 if [ "$?" -ne "0" ]; then
 	echo "ansible-playbook failed with non-zero return."

@@ -66,6 +66,8 @@
     - include: tasks/rhua_repo_install_software.yml
       when: iso_path == ""
 
+    - include: tasks/rhua_monitoring_service_install.yml
+
     - name: restart httpd
       action: service name=httpd state=restarted
 
