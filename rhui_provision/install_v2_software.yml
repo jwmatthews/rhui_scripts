@@ -71,6 +71,7 @@
     - name: restart httpd
       action: service name=httpd state=restarted
 
+
 - name: Install Packages for CDS
   hosts: CDS_01:CDS_02
   user: ec2-user
@@ -90,15 +91,22 @@
     - name: restart httpd
       action: service name=httpd state=restarted
 
+- name: Set gofer heartbeat to 60 seconds for stability under load
+  hosts: RHUA:CDS_01:CDS_02
+  user: ec2-user
+  become: true
+
+  tasks:
+    - name: change gofer heartbeat to 60 seconds
+      shell: sed -i 's/heartbeat=10/ heartbeat=60/g' /usr/lib/python2.6/site-packages/gofer/messaging/broker.py
+
 - name: Install Packages for Monitoring
-  hosts: MON_SERV 
+  hosts: MON_SERV
   user: ec2-user
   become: true
   gather_facts: true
 
   tasks:
     - include: tasks/monitoring_service_install.yml
-    
-    - include: tasks/set_ntp.yml
 
-  
+    - include: tasks/set_ntp.yml
