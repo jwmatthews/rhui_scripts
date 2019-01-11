@@ -286,3 +286,35 @@ n
 y
 q
 EOQ
+
+cat <<EOQ | rhui-manager --username admin --password admin
+r
+c
+rhui-client-config-rhel-server-6-x86_64-jbeap-72
+Red Hat Update Infrastructure 2.0 Client Configuration Server 6 x86_64 JBoss EAP 7.2
+rhui-client-config/rhel/server/6/x86_64/jbeap/7.2
+1
+y
+rhui-client-config/rhel/server/6/x86_64/jbeap/7.2
+y
+n
+n
+y
+q
+EOQ
+
+cat <<EOQ | rhui-manager --username admin --password admin
+r
+c
+rhui-client-config-rhel-server-7-x86_64-jbeap-72
+Red Hat Update Infrastructure 2.0 Client Configuration Server 7 x86_64 JBoss EAP 7.2
+rhui-client-config/rhel/server/7/x86_64/jbeap/7.2
+1
+y
+rhui-client-config/rhel/server/7/x86_64/jbeap/7.2
+y
+n
+n
+y
+q
+EOQ
